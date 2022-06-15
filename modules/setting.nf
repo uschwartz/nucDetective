@@ -12,6 +12,7 @@ def settings() {
                   csvInput :            ${params.csvInput}
                   outDir   :            ${params.outDir}
                   genomeIdx:            ${params.genomeIdx}
+                  chrSizes:             ${params.chrSizes}
 
                   General options
                   analysis:             ${params.analysis}

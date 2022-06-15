@@ -13,9 +13,14 @@ def helpMessage() {
 
     Mandatory arguments:
       --csvInput        [string] Path to comma-separated file containing information about the samples in the experiment (see ./toyData/input.csv as example) template provided in ./input_template.csv
-      --genomeIdx       [string] Path and prefix of bowtie2 index (minus .X.bt2)
-      --genomeSize      [integer] Effective genome size, defined as the length of the mappable genome. Used for normalisation (default: 162367812 (dm3))
       --analysis        [string] select the workflow to execute; available workflows 'profiler' or 'inspector'  (default:profiler)
+      --genomeSize      [integer] Effective genome size, defined as the length of the mappable genome. Used for normalisation (default: 162367812 (dm3))
+
+    Mandatory arguments profiler:
+      --genomeIdx       [string] Path and prefix of bowtie2 index (minus .X.bt2)
+
+    Mandatory arguments inspector:
+      --chrSizes        [string] Path to tab-delim file with 2 columns 1)chr name and 2)chr size
 
     optional arguments:
       --outDir          [string] Name of output directory, which will be created (default: ~/nucMACC_test/)

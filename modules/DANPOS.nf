@@ -17,14 +17,10 @@ process danpos{
   file("result/pooled/*.wig")
 
   script:
-  resolution = ( params.genomeSize > 200000000 ? '10':'1')
   """
   danpos.py dpos $bam -m 1 --extend 70 -c $params.genomeSize \
-  -u 0 -z 20 -a $resolution -e 1 \
+  -u 0 -z 20 -e 1 \
   --distance 75 --width 10  > $sampleID"_DANPOS_stats.txt"
   wigToBigWig result/pooled/*.wig -clip $chrSizes $sampleID"_monoNucs_profile.bw"
   """
 }
-
-
-//mv  result/pooled/*.wig ./$sampleID"_profile.wig"

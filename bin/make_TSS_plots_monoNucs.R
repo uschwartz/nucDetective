@@ -31,7 +31,7 @@ if(sum(names.pre %in% "pooled")>0){
     names<-names.pre
 }
 
-#get min value in 
+#get min value in
 for(i in names){
     curr_min<-min(heat.val[i,profile.index ])
     curr_max<-max(heat.val[i,profile.index ])
@@ -52,8 +52,8 @@ par(mar=c(5.1, 4.1, 4.1, 13.8))
 for(i in 1:length(names)){
     if(i==1){
         plot(pos,
-             heat.val[names[i],profile.index ], 
-             type="l", 
+             heat.val[names[i],profile.index ],
+             type="l",
              xlab="distance from TSS", ylab = "MNase fragment density",
              lwd=2, main="TSS profile", col=dark2[i], ylim=c(low,high))
     }
@@ -63,10 +63,8 @@ for(i in 1:length(names)){
               col=dark2[i],lwd=2)
     }
 }
-legend(1600,high+10,bty="n",
-       legend=names, 
+legend(1600,high+(high-low)/10, bty="n",
+       legend=names,
        col=dark2[1:length(names)], lwd=2,
        xpd=TRUE)
 dev.off()
-
-
