@@ -5,8 +5,7 @@ process quantNorm{
   pattern: "*_qNorm.bw"
 
   input:
-  tuple val(sampleID), file(wig), val(type)
-  tuple val(refID), file(ref), val(ref_type)
+  tuple val(sampleID), file(wig), val(type), val(refID), file(ref), val(ref_type)
 
 
   output:

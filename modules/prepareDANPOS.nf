@@ -1,4 +1,5 @@
 process chrsize{
+  publishDir "${params.outDir}/RUN/", mode: 'copy'
 
   input:
   file(bam)
