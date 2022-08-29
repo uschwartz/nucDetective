@@ -23,7 +23,7 @@ process shift{
   file(bw)
 
   output:
-
+  file ("*")
 
   script:
   """

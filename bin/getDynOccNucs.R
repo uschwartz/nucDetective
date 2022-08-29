@@ -44,7 +44,7 @@ loess.line<-predict(lm)
 #get first derivative to deduce the slope of loess function
 loess.f1<-diff(loess.line)/diff(counts_rank)
 #set the slope cutOff to 1
-cutOff<-max(which(loess.f1<1))
+cutOff<-max(which(loess.f1<3))
 
 
 png("dynOCC_selection.png",
@@ -59,8 +59,6 @@ lines(counts_rank,loess.line, col="red")
 abline(v=counts_rank[cutOff], col="grey", lty=2)
 dev.off()
 
-#variance cutOff value
-var_counts_sort[cutOff]
 
 ### select the peaks with highest variance
 idx_var<-var_counts>var_counts_sort[cutOff]
@@ -77,12 +75,15 @@ nucStats<-cbind(pos,df)
 
 nucStats.ord<-nucStats[order(nucStats$varOCC,decreasing = T),]
 
-write.table(nucStats.ord, file="nucMACC_result_table.tsv",
+write.table(nucStats.ord, file="occupancy_result_table.tsv",
             row.names = FALSE, sep="\t", quote=FALSE,col.names = T)
 
 
 ## export nucleosome positions
-write.table(nucStats.ord[nucStats.ord$category =="dynamicOccupancy",
-                         c("chr", "start","end", "nucID","varOCC", "strand")],
+
+final.pos<-nucStats.ord[nucStats.ord$category =="dynamicOccupancy",
+c("chr", "start","end", "nucID","varOCC", "strand")]
+
+write.table(final.pos[order(final.pos$varOCC,decreasing = T),],
             file="positions_varOCC.bed",
             row.names = FALSE, sep="\t", quote=FALSE, col.names = FALSE)

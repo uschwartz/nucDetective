@@ -87,9 +87,80 @@ ord<-order(time)
 max.pos.mx<-max.pos.mx[,ord]
 max.score.mx<-max.score.mx[,ord]
 
-# save objects
-save(max.score.mx, file="max.score.mx.rda")
-save(max.pos.mx, file="max.pos.mx.rda")
+
+#calculate the variance of each peak summit over all timepoints
+var_pos<-apply(max.pos.mx,1,function(x) var(x,na.rm = T))
+var_pos_sort<-sort(var_pos)
+
+
+############################# LOESS fit ######
+######### normalize ##########
+
+## Rank and normalize variation of nucleosome positions
+pos_rank<-rank(var_pos_sort, ties.method = "first")/length(var_pos_sort)
+var_pos_norm<-(var_pos_sort/max(var_pos_sort))
+
+# fit the data
+#define to take 1000 nucleosomes as window for loess
+span.loess.pre<-1000/length(var_pos_norm)
+span.loess<-ifelse(span.loess.pre<0.05, span.loess.pre, 0.05)
+
+lm<-loess(var_pos_norm~pos_rank,span=span.loess)
+#Curve fitting
+loess.line<-predict(lm)
+
+#calculate the first derivative
+loess.f1<-diff(loess.line)/diff(pos_rank)
+#define a slope cutoff of 1
+cutOff<-min(which(loess.f1>3))
+
+png("dynSHIFT_selection.png",
+        width = 1280, height = 1280, res =300 )
+    plot(pos_rank,var_pos_norm,
+         ylab="variance score of reference position", 
+         xlab = "normalized rank", bty="n", pch=19)
+    points(pos_rank[cutOff:length(pos_rank)],
+           var_pos_norm[cutOff:length(pos_rank)],
+           pch=19, col="aquamarine3")
+    lines(pos_rank,loess.line, col="red")
+    abline(v=pos_rank[cutOff], col="grey", lty=2)
+dev.off()
+
+
+### select the peaks with highest variance
+idx_var<-var_pos>var_pos_sort[cutOff]
+
+############################################
 
 
 
+#get chromosome
+chr<-sapply(strsplit(names(var_pos),split = ":"),function(x) x[1])
+ranges<-sapply(strsplit(names(var_pos),split = ":"),function(x) x[2])
+end<-sapply(strsplit(ranges,split = "-"),function(x) x[2])
+start<-sapply(strsplit(ranges,split = "-"),function(x) x[1])
+
+#export bed file and define score by variance
+var_peaks_bed<-data.frame(chr=chr,
+                            start=start,
+                            end=end,
+                            name=names(var_pos),
+                            varSHIFT=var_pos,
+                            strand=".")
+
+write.table(var_peaks_bed[order(var_peaks_bed$varSHIFT,decreasing = T),],
+            file="shift_result_table.tsv",
+            row.names = FALSE, sep="\t", quote=FALSE,col.names = T)
+
+
+## export selected regions
+shift_peaks_bed<-var_peaks_bed[idx_var,]
+
+## export nucleosome positions
+write.table(shift_peaks_bed[order(shift_peaks_bed$varSHIFT,decreasing = T),],
+            file="positions_varSHIFTS.bed",
+            row.names = FALSE, sep="\t", quote=FALSE, col.names = FALSE)
+
+
+
+ 
