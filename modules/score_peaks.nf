@@ -1,5 +1,6 @@
 process score_peaks{
   label 'mid'
+  memory '15.GB'
   publishDir "${params.outDir}/RUN/04_NUC_SCORES/", mode: 'copy'
 
   input:
@@ -20,6 +21,7 @@ process score_peaks{
 
 process pca{
   label 'mid'
+  memory '15.GB'
   publishDir "${params.outDir}/RUN/05_NUC_Explorative/", mode: 'copy'
 
   input:
@@ -38,6 +40,7 @@ process pca{
 
 process correlation{
   label 'mid'
+  memory '15.GB'
   publishDir "${params.outDir}/RUN/05_NUC_Explorative/", mode: 'copy'
 
   input:

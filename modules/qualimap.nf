@@ -2,6 +2,7 @@ process qualimap {
 
   container 'uschwartz/qualimap'
   label 'mid'
+  memory '7.GB'
   publishDir "${params.outDir}/QC/05_QUALIMAP", mode: 'copy'
 
   input:
@@ -13,6 +14,6 @@ process qualimap {
 
   script:
   """
-  qualimap bamqc --java-mem-size=16G -bam $bam -c -outdir ${sampleID}
+  qualimap bamqc --java-mem-size=7G -bam $bam -c -outdir ${sampleID}
   """
 }

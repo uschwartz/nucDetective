@@ -1,5 +1,6 @@
 process trimgalore{
   label 'big'
+  memory '7.GB'
   container 'uschwartz/core_docker:v1.0'
   publishDir "${params.outDir}/QC/02_TRIMMING/${sampleID}", mode: 'copy', pattern: "*trimming_report.txt"
   publishDir "${params.outDir}/QC/03_TRIMMED_FASTQC/${sampleID}", mode: 'copy', pattern: "*.html"

@@ -1,5 +1,6 @@
 process TSS_profile{
   label 'mid'
+  memory { params.genomeSize > 200000000 ? '15.GB' : '7.GB'}
 
   input:
   file(bw)

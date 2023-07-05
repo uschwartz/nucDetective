@@ -1,5 +1,6 @@
 process sieve{
   label 'big'
+  memory { params.genomeSize > 200000000 ? '15.GB' : '7.GB'}
   publishDir "${params.outDir}/QC/07_ALIGNMENT_FILTERING/", mode: 'copy', pattern: "*_FiltLog.txt"
   publishDir "${params.outDir}/RUN/00_ALIGNMENT/monoNuc", mode: 'copy', pattern: "*_monoNuc.bam", enabled:params.publishBamFlt
 

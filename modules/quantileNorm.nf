@@ -1,6 +1,6 @@
 process quantNorm{
   container 'uschwartz/danpos'
-  memory { params.genomeSize > 200000000 ? 50.GB : 16.GB }
+  memory { params.genomeSize > 200000000 ? '47.GB' : '15.GB' }
   publishDir "${params.outDir}/RUN/01_NORM_PROFILE", mode: 'copy',
   pattern: "*_qNorm.bw"
 
