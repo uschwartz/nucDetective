@@ -15,6 +15,8 @@ include{make_TSS_plots} from '../modules/make_TSS_plots'
 include{score_peaks;  pca; correlation} from '../modules/score_peaks'
 //get dynamic nucleosomes
 include{occupancy; shift} from '../modules/DynNucs'
+//get fuzziness of nucleosomes
+//include{fuzziness} from '../modules/fuzziness'
 
 
 workflow inspector{
@@ -65,5 +67,8 @@ workflow inspector{
           // dynamic nucleosomes
           occupancy(score_peaks.out[0])
           shift(reference_map.out, bw_ch.collect())
+
+          //fuzziness of nucleosomes
+          //fuzziness(reference_map.out, nuc2bed.out.collect())
 
 }
