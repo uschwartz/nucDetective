@@ -9,6 +9,7 @@ args   <- commandArgs(TRUE)
 
 heat.val<-read.delim(file = args[1])
 
+heat.val<-heat.val[order(heat.val[,1]),]
 #defining color palette
 dark2 <- c(RColorBrewer::brewer.pal(8, "Dark2"),RColorBrewer::brewer.pal(8, "Set1"),RColorBrewer::brewer.pal(8, "Set2"))
 

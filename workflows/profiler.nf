@@ -43,8 +43,7 @@ workflow profiler{
         // get mono-nucleosome fragments
         sieve(alignment.out[1])
         //get chrom_Sizes
-        chrsize(sieve.out[1].map{name,bam -> file(bam)}.collectFile(sort:true)
-        .first())
+        chrsize(sieve.out[1].map{name,bam -> file(bam)}.collect(sort:true).map { it[0] })
         //get nucleosome profiles
         danpos(sieve.out[1], chrsize.out)
         //FragmentStatistics

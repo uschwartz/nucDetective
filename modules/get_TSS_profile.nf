@@ -1,6 +1,6 @@
 process TSS_profile{
-  label 'mid'
-  memory { params.genomeSize > 200000000 ? '15.GB' : '7.GB'}
+  cpus = (Math.round(Runtime.runtime.availableProcessors()*0.8))
+  memory { 2.GB * task.cpus }
 
   input:
   file(bw)
