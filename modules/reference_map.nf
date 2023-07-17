@@ -1,5 +1,5 @@
 process reference_map{
-  container 'uschwartz/r_nucmacc:v3.1'
+  container 'uschwartz/r_core:v4.2'
   publishDir "${params.outDir}/RUN/03_NUCS/referenceMap/", mode: 'copy'
 
   input:

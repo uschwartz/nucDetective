@@ -1,6 +1,6 @@
 process fuzziness{
-  container 'uschwartz/r_core:v1.0'
-  publishDir "${params.outDir}/RUN/07_FUZZY_NUCS/", mode: 'copy'
+  container 'uschwartz/r_core:v4.2'
+  publishDir "${params.outDir}/RUN/06_DYNAMIC_NUCS/fuzziness", mode: 'copy'
 
   input:
   file(nucPos)

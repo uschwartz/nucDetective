@@ -11,9 +11,10 @@ process alignment{
 
   output:
   file "*_alignment_stats.txt"
-  tuple val(sampleID), file("*_aligned.bam")
+  tuple val(sampleID), file("*_aligned.bam") 
   tuple val(sampleID), file("*_alignment_stats.txt")
-
+  tuple val(sampleID), file("*_aligned.bam"), file("*.bai")	
+  
   script:
   """
   bowtie2 -t \
@@ -28,7 +29,7 @@ process alignment{
   2> ${sampleID}_alignment_stats.txt \
   | samtools view -bS -q $params.MAPQC -f 2 -@ $task.cpus - | samtools sort -@ $task.cpus - > ${sampleID}"_aligned.bam"
 
-  samtools index -b ${sampleID}"_aligned.bam"
+  samtools index -@ $task.cpus -b ${sampleID}"_aligned.bam" 
   """
 
 }

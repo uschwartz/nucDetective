@@ -7,8 +7,6 @@ include{danpos_nuc} from '../modules/DANPOS_finalnucs'
 include{nucs2bed} from '../modules/nucs2bed'
 //get referenceMap
 include{reference_map;reference_map_all } from '../modules/reference_map'
-//get chatgpt referencemap
-include{reference_map_gpt; reference_map_all_gpt} from '../modules/reference_map_gpt'
 //deeptools TSS
 include{TSS_profile;TSS_profile_plot} from '../modules/get_TSS_profile'
 //TSS Profile monoNucs
@@ -18,7 +16,9 @@ include{score_peaks;  pca; correlation} from '../modules/score_peaks'
 //get dynamic nucleosomes
 include{occupancy; shift} from '../modules/DynNucs'
 //get fuzziness of nucleosomes
-//include{fuzziness} from '../modules/fuzziness'
+include{fuzziness} from '../modules/fuzziness'
+//get regularity
+include{regularity} from '../modules/regularity'
 
 
 workflow inspector{
@@ -50,11 +50,7 @@ workflow inspector{
           .set{sorted_ch}
           reference_map(nucs2bed.out[0].collect(), sorted_ch)
           reference_map_all(nucs2bed.out[1].collect(), sorted_ch)
-          //gpt_referenceMap
-          //reference_map_gpt(nucs2bed.out[0].collect(), sorted_ch)
-          
-          //reference_map_all_gpt(nucs2bed.out[1].collect(), sorted_ch)
-          
+         
           
           quantNorm.out[0].mix(ref_bw.out[0]).map{name,bw -> bw}.set{bw_ch}
 
@@ -73,9 +69,14 @@ workflow inspector{
 
           // dynamic nucleosomes
           occupancy(score_peaks.out[0])
-          shift(reference_map.out, bw_ch.collect())
+          //shift(reference_map.out, bw_ch.collect())
 
           //fuzziness of nucleosomes
-          //fuzziness(reference_map.out, nuc2bed.out.collect())
+          fuzziness(reference_map.out, nucs2bed.out[0].collect())
+
+          //regularity of nucleosomes  
+          regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toList(),
+          quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toList())
+          
 
 }

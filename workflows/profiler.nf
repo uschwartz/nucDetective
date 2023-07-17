@@ -21,6 +21,8 @@ include{statistics_read; statistics_plot} from '../modules/fragment_statistics'
 include{TSS_profile;TSS_profile_plot} from '../modules/get_TSS_profile'
 //TSS Profile monoNucs
 include{make_TSS_plots} from '../modules/make_TSS_plots'
+//Nucleosome repeat length
+include{NRL}from '../modules/NRL' 
 
 
 
@@ -61,5 +63,8 @@ workflow profiler{
                 TSS_profile_plot(TSS_profile.out)
                 make_TSS_plots(TSS_profile_plot.out)
         }
+
+        //NRL
+        NRL(sieve.out[2].map{id, bam, idx -> id}.toList(), sieve.out[2].map{id, bam, idx -> bam}.toList(),sieve.out[2].map{id, bam, idx -> idx}.toList())
         
 }

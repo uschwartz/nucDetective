@@ -1,4 +1,4 @@
-
+#!/usr/bin/env Rscript
 # Fuzziness Metric - DANPOS --------------------------------------------------
 
 # Script by Simon Holzinger mod. by Leo Schmutterer to fit the pipeline
@@ -15,7 +15,8 @@
 
 library(tidyverse)
 library(plyranges)
-
+library(stringr)
+library(ggpubr)
 
 # Main --------------------------------------------------------------------
 
@@ -24,7 +25,11 @@ refPos <- read_bed("NucPosRef_top20.bed")
 
 # Load Nucleosome and Fuzziness data
 inFiles <- grep("bed",list.files(), value = T)
-fileNames <- c("T10", "T15", "T20", "T25", "T30", "T35", "T40", "T5")
+inFiles<- inFiles[-grep("NucPosRef", inFiles)]
+fileNames <- c()
+for(i in 1:length(inFiles)) fileNames[i] <- gsub(".bed","", inFiles[i])
+fileNames <- fileNames[order(fileNames)]
+
 
 
 inDat <- inFiles %>%
@@ -70,7 +75,7 @@ ranked_dat <- refFuz %>%
          norm_var = var/max(var))
 
 # fit curve and get slope cutoff
-slope_at_cutoff = 1
+slope_at_cutoff = 3
 fitx <- smooth.spline(x = ranked_dat$var_rank, y = ranked_dat$norm_var)
 f <-predict(fitx)
 f1<-predict(fitx, deriv=1)
@@ -109,7 +114,7 @@ refFuzTableAllTP <- refFuz %>%
 # Save Data table with all relevant datacolumns
 refFuzTableAllTP %>% 
   dplyr::select(-c(width, strand, name, score)) %>% 
-  write_delim(file = paste0("referenceMapped_Fuzziness_table.tsv", delim = "\t"))
+  write_delim(file = paste0("referenceMapped_Fuzziness_table.tsv"), delim = "\t")
 
 # Save Bed file with high variance in fuzziness nucleosome positions
 refFuzTableAllTP %>% 
@@ -119,4 +124,4 @@ refFuzTableAllTP %>%
          score = fuzzinessVariance) %>% 
   filter(highFuzVariance) %>% 
   as_granges() %>% 
-  write_bed(file = paste0("/HighFuzNuc.bed"))
+  write_bed(file = paste0("HighFuzNuc.bed"))
