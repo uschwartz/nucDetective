@@ -10,13 +10,22 @@ The pipeline contains two main workflows:
 ### Profiler
 
 <p align="center">
-	<img src="docs/img/Workflow_Profiler.png" width="800" height="450">
-    *Workflow Profiler*
+                    Workflow Profiler
+	<img src="docs/img/Workflow_Profiler.png" width="800" height="550">
+    
 </p>
 
 Given paired-end sequencing data in fastq format, this pipeline will first run `profiler`:
 
 `Profiler` processes given fastq files to align them to a given genome and call nucleosome positions.
+    1. Trimming of reads using [`Trim Galore`](https://github.com/FelixKrueger/TrimGalore) and QC using [`fastQC`](https://github.com/s-andrews/FastQC)
+
+
+
+
+
+
+
 `Profiler` returns a "QC" and a "RUN" folder. 
     The "QC" folder contains:
         1. FastQC reports on raw data
