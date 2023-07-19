@@ -150,7 +150,7 @@ nextflow run /nucDetective/ \
 All options, except `--publishBamFlt`,`--blacklist`, and `--TSS`, are required.   
 
 
-* `nucMACC` with `--bamEntry`
+* `Inspector`
 ```bash
 nextflow run /nucDetective/ \
 --analysis 'inspector' \
