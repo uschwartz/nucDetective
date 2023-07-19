@@ -267,6 +267,14 @@ rankedDat %>%
   as_granges() %>%
   write_bed(file = paste0("HighFuzRegions_bs",binSize, "_10xlog.bed"))
 
+
+
+write.table(rankedDat[order(rankedDat$score, decreasing =T),],
+            file="Regularity_10xlog_result_table.tsv",
+            row.names = FALSE, sep="\t", quote=FALSE, col.names = T)
+
+
+
 rankedDat %>%
   filter(var_rank > cutOff) %>% 
   as_granges() %>%

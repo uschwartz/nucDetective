@@ -43,7 +43,7 @@ workflow profiler{
         //Fragment sizes
         InsertSize_Histogram(qualimap.out[0].collect())
         // get mono-nucleosome fragments
-        sieve(alignment.out[1])
+        sieve(alignment.out[3])
         //get chrom_Sizes
         chrsize(sieve.out[1].map{name,bam -> file(bam)}.collect(sort:true).map { it[0] })
         //get nucleosome profiles

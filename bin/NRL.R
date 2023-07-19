@@ -18,9 +18,13 @@ library(furrr)
 
 ## Setup Filepaths and -names
 
-
+#read in bams
 inFiles <- grep(".bam$",args , value = T)
+#read in everything else
 fileNames <- args[-grep(".bam",args)]
+#remove the peak number from the names
+fileNames <- fileNames[-length(fileNames)]
+#remove brakets from names
 fileNames <- gsub("[][, ]","" ,fileNames)
 
 
@@ -29,7 +33,7 @@ fileNames <- gsub("[][, ]","" ,fileNames)
 # based on https://fmicompbio.github.io/swissknife/reference/index.html
 
 smooth_span <- 0.3
-num_peaks_used <- 7 
+num_peaks_used <- as.integer(tail(args, n = 1 ))
 
 #indexBam(fileNames)
 
@@ -70,8 +74,7 @@ write_csv(NRLs_wg, file = "Pf_whole-genome_NRLs.csv")
 ## Load pallet
 #load(file = "time.pal.rda")
 
-plt <- NRLs_wg %>% 
-  filter(sample != "sonicated_gDNA") %>% 
+plt <- NRLs_wg %>%
   mutate(sample = as.factor(sample)) %>% 
   mutate(sample = fct_relevel(sample, "MNase-seq_T5")) %>% 
   ggplot() +
