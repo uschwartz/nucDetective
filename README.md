@@ -83,9 +83,9 @@ Once `Profiler` is completed the `Inpector` can be instructed to analyze nucleos
     2. TSS profile plot
     3. Nucleosome reference maps, nucleosome bed files and top 20% best positioned among conditions nucleosome
     4. Nucleosome scores
-    5. PCA and Correlation heatmap of normalized profiles
-    6. Nucleosome fuzziness, occupancy and shift in `.bed` format
-    7. Highly irregular regions in `.bed` format
+    5. PCA and correlation heatmap of normalized profiles
+    6. Fuzzy nucleosomes, regions of high nucleosome occupancy changes, regions of high nucleosome shifts
+    7. Regions with high changes in regularity and Power spectral density
 
 ## Get started
 
@@ -104,8 +104,12 @@ git clone https://github.com/LeSch1/nucDetective.git
 
 ### Usage
 First you need to run the `Profiler` workflow. We recommend to assess "QC" output before running the next step. Then take the output and run `Inspector`.  
+Files will be sorted according to name, to maintain a certain order we recommend naming files accordingly. 
+* Example
+    01 to 20 rather than 1 to 20
 
-To execute the pipeline a samplesheet is required for each workflow. See examples below.
+
+To execute the pipeline a sample sheet is required for each workflow. See examples below.
 
 Workflow:
 

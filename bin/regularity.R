@@ -91,7 +91,7 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
   #  psd_gr <- dropSeqlevels(psd_gr, value = seqlevels(psd_gr)[!(seqlevels(psd_gr) %in% ccS$seqnames)],pruning.mode = "coarse")
   
   seqlengths(psd_gr) <- corrected_chrSizes$size
-  write_bigwig(psd_gr, file = paste0("PSD_avgNRL_", ctp, ".bw"))
+  write_bigwig(psd_gr, file = paste0("PSD_avgNRL_",avgNRL,"_", ctp, ".bw"))
   
   return(psd_gr %>% as_tibble())
 }
@@ -265,7 +265,7 @@ dev.off()
 rankedDat %>%
   filter(var_rank > cutOff) %>% 
   as_granges() %>%
-  write_bed(file = paste0("HighFuzRegions_bs",binSize, "_10xlog.bed"))
+  write_bed(file = paste0("Irregular_Regions_bs",binSize, "_10xlog.bed"))
 
 
 
@@ -279,5 +279,5 @@ rankedDat %>%
   filter(var_rank > cutOff) %>% 
   as_granges() %>%
   reduce() %>% # collapse bins into single bin if they are overlapping
-  write_bed(file = paste0("HighFuzRegions_bs", binSize, "_10xlog_reduced_filt.bed"))
+  write_bed(file = paste0("Irregular_Regions_bs", binSize, "_10xlog_reduced_filt.bed"))
 

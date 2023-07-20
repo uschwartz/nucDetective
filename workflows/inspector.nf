@@ -75,8 +75,8 @@ workflow inspector{
           fuzziness(reference_map.out, nucs2bed.out[0].collect())
 
           //regularity of nucleosomes  
-          regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toList(),
-          quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toList())
+          regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(),
+          quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())
           
 
 }

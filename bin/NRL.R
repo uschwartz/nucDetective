@@ -35,7 +35,6 @@ fileNames <- gsub("[][, ]","" ,fileNames)
 smooth_span <- 0.3
 num_peaks_used <- as.integer(tail(args, n = 1 ))
 
-#indexBam(fileNames)
 
 NRLs_wg <- inFiles %>%
   set_names(fileNames) %>% 
@@ -66,7 +65,7 @@ NRLs_wg <- inFiles %>%
   }, .id = "sample")
 
 # Save NRL table
-write_csv(NRLs_wg, file = "Pf_whole-genome_NRLs.csv")
+write_csv(NRLs_wg, file = paste0(fileNames,"_NRLs.csv"))
 
 
 # Plot --------------------------------------------------------------------
@@ -74,18 +73,18 @@ write_csv(NRLs_wg, file = "Pf_whole-genome_NRLs.csv")
 ## Load pallet
 #load(file = "time.pal.rda")
 
-plt <- NRLs_wg %>%
-  mutate(sample = as.factor(sample)) %>% 
-  mutate(sample = fct_relevel(sample, "MNase-seq_T5")) %>% 
-  ggplot() +
-  geom_pointrange(aes(ymin = nrl.2.5, ymax = nrl.97.5, x = sample, y = NRL, color = sample), position = position_dodge(width = 0.4)) +
-  #scale_color_manual(values = time.pal) +
-  labs(title = "Nucleosome Repeat Length",
-       x = "", 
-       y = "mean NRL [bp]",
-       caption = "95%CI indicated") +
-  theme_pubr() +
-  guides(colour = "none") +
-  labs_pubr() 
-
-ggsave("NRLs.pdf", plot = plt, height = 3, width = 3.5)
+# plt <- NRLs_wg %>%
+#   mutate(sample = as.factor(sample)) %>% 
+#   mutate(sample = fct_relevel(sample, "MNase-seq_T5")) %>% 
+#   ggplot() +
+#   geom_pointrange(aes(ymin = nrl.2.5, ymax = nrl.97.5, x = sample, y = NRL, color = sample), position = position_dodge(width = 0.4)) +
+#   #scale_color_manual(values = time.pal) +
+#   labs(title = "Nucleosome Repeat Length",
+#        x = "", 
+#        y = "mean NRL [bp]",
+#        caption = "95%CI indicated") +
+#   theme_pubr() +
+#   guides(colour = "none") +
+#   labs_pubr() 
+# 
+# ggsave("NRLs.pdf", plot = plt, height = 3, width = 3.5)
