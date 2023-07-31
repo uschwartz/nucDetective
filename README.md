@@ -4,7 +4,7 @@
 nucDetective is a two step automated pipeline for the investigation of nucleosome positions and nucleosome dynamics among MNase-Seq data generated using varying conditions.
 The pipeline contains two main workflows:
 
-1. `Profiler` for alignments, qualitycontrol and nucleosome calling
+1. `Profiler` for alignments, quality control and nucleosome calling
 2. `Inspector` for analysis of nucleosome dynamics
 
 ### Profiler
@@ -17,7 +17,7 @@ The pipeline contains two main workflows:
 
 Given paired-end sequencing data in fastq format, this pipeline will first run `Profiler`:
 
-* The `Profiler` workflow can be seperated into two main branches: Data processing and QC.
+* The `Profiler` workflow can be separated into two main branches: Data processing and QC.
     * Data processing:
         1. Trimming of reads using [`Trim Galore`](https://github.com/FelixKrueger/TrimGalore)
         2. Alignment of reads to a provided genome index using [`bowtie2`](https://github.com/BenLangmead/bowtie2)
@@ -31,9 +31,9 @@ Given paired-end sequencing data in fastq format, this pipeline will first run `
 
     * QC
         1. QC using [`fastQC`](https://github.com/s-andrews/FastQC) on raw and processed reads
-        2. Insertsize histogram generation from [`qualimap`](http://qualimap.conesalab.org/) processed [`bowtie2`](https://github.com/BenLangmead/bowtie2) data
+        2. Insert size histogram generation from [`qualimap`](http://qualimap.conesalab.org/) processed [`bowtie2`](https://github.com/BenLangmead/bowtie2) data
         3. [`MultiQC`](https://multiqc.info/) combining information of [`qualimap`](http://qualimap.conesalab.org/), [`Trim Galore`](https://github.com/FelixKrueger/TrimGalore), [`bowtie2`](https://github.com/BenLangmead/bowtie2) and [`fastQC`](https://github.com/s-andrews/FastQC)
-        4. Fragment statistics combining inforamtion of [`qualimap`](http://qualimap.conesalab.org/), [`Trim Galore`](https://github.com/FelixKrueger/TrimGalore), [`bowtie2`](https://github.com/BenLangmead/bowtie2), [deepTools](https://github.com/deeptools/deepTools/tree/master) `alignmentSieve` and [`fastQC`](https://github.com/s-andrews/FastQC)
+        4. Fragment statistics combining information of [`qualimap`](http://qualimap.conesalab.org/), [`Trim Galore`](https://github.com/FelixKrueger/TrimGalore), [`bowtie2`](https://github.com/BenLangmead/bowtie2), [deepTools](https://github.com/deeptools/deepTools/tree/master) `alignmentSieve` and [`fastQC`](https://github.com/s-andrews/FastQC)
 
 
 #### Output
@@ -42,10 +42,10 @@ Given paired-end sequencing data in fastq format, this pipeline will first run `
     1. FastQC reports on raw data
     2. Trimming reports
     3. Trimmed fastQC reports
-    4. Alignment statisics and fragmentsize Plots
+    4. Alignment statistics and fragmentsize Plots
     5. Qualimap reports
     6. Filtering reports
-    7. Fragment statisics
+    7. Fragment statistics
     8. Phasograms
     9. MultiQC reports
 
@@ -83,7 +83,7 @@ Once `Profiler` is completed the `Inpector` can be instructed to analyze nucleos
     2. TSS profile plot
     3. Nucleosome reference maps, nucleosome bed files and top 20% best positioned among conditions nucleosome
     4. Nucleosome scores
-    5. PCA and correlation heatmap of normalized profiles
+    5. PCA and correlation heat map of normalized profiles
     6. Fuzzy nucleosomes, regions of high nucleosome occupancy changes, regions of high nucleosome shifts
     7. Regions with high changes in regularity and Power spectral density
 
@@ -129,7 +129,7 @@ Each row represents a pair of fastq files. Here unique sample names are required
 
 ```csv
 Sample_Name,path_wig,normalize,condition
-name1,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name1_profile.wig,Norm,cond1
+name1,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name1_profile.wig,Reference,cond1
 name2,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name2_profile.wig,Norm,cond2
 name3,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name3_profile.wig,Norm,cond3
 ```
