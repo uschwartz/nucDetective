@@ -52,8 +52,7 @@ NRLs_wg <- inFiles %>%
     pdf(paste0("NRL_",sample,".pdf"))
     plotPhasogram(pg,
                   usePeaks = 1:num_peaks_used,
-                  xlim = c(0,3000),
-                  span2 = smooth_span)
+                  xlim = c(0,3000), span2 = smooth_span)
     title(main = sample)
     dev.off()
     

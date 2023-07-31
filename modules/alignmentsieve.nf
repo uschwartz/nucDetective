@@ -1,4 +1,5 @@
 process sieve{
+container 'uschwartz/deeptools_samtools:v1.0'
   label 'big'
   memory { params.genomeSize > 200000000 ? '15.GB' : '7.GB'}
   publishDir "${params.outDir}/QC/07_ALIGNMENT_FILTERING/", mode: 'copy', pattern: "*_FiltLog.txt"

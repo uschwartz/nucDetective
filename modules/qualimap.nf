@@ -2,7 +2,7 @@ process qualimap {
 
   container 'uschwartz/qualimap'
   label 'mid'
-  memory '15.GB'
+  memory '16.GB'
   publishDir "${params.outDir}/QC/05_QUALIMAP", mode: 'copy'
 
   input:

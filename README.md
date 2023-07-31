@@ -104,7 +104,7 @@ git clone https://github.com/LeSch1/nucDetective.git
 
 ### Usage
 First you need to run the `Profiler` workflow. We recommend to assess "QC" output before running the next step. Then take the output and run `Inspector`.  
-Files will be sorted according to name, to maintain a certain order we recommend naming files accordingly. 
+Files will be sorted alphabetically, we therfore recommend naming files accordingly. 
 * Example:
     01 to 20 rather than 1 to 20
 
