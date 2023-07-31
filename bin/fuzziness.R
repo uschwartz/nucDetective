@@ -58,7 +58,6 @@ refFuz <- refPos %>%
   as_tibble() %>%
   group_by(nucID, timepoints) %>% 
   filter(overlap == max(overlap)) %>% 
-  # dplyr::select(nucID,fuz, timepoints) %>% 
   filter(!is.na(fuz)) %>% 
   mutate(score = fuz,
          name = paste(nucID, timepoints, sep = "_"))
@@ -92,7 +91,6 @@ highFuzNucs <- ranked_dat %>% filter(var_rank>cutOff) %>% pull(nucID)
 ranked_dat %>% ggplot(aes(x = var_rank, y = norm_var)) +
   geom_point() +
   geom_point(data = ranked_dat %>% filter(var_rank>cutOff), aes(x = var_rank, y = norm_var), color = "#EF6461") +
-#  geom_smooth(aes(x = var_rank, y = norm_var), method = "loess", span = 0.01, color = "black", size = 0.5) +
   geom_vline(xintercept = cutOff, linetype = "dashed") +
   theme_classic() +
   labs(x = "normalized rank", 

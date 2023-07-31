@@ -87,8 +87,7 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
     as_granges()
   
   # Correct for different seqlevels
-  corrected_chrSizes <- chrSizes %>% filter(seqnames %in% seqnames(psd_gr)) 
-  #  psd_gr <- dropSeqlevels(psd_gr, value = seqlevels(psd_gr)[!(seqlevels(psd_gr) %in% ccS$seqnames)],pruning.mode = "coarse")
+  corrected_chrSizes <- chrSizes %>% filter(seqnames %in% seqnames(psd_gr))
   
   seqlengths(psd_gr) <- corrected_chrSizes$size
   write_bigwig(psd_gr, file = paste0("PSD_avgNRL_",avgNRL,"_", ctp, ".bw"))
