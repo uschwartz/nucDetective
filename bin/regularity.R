@@ -98,13 +98,28 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
 
 ## Function from https://divingintogeneticsandgenomics.rbind.io/post/compute-averages-sums-on-granges-or-equal-length-bins/
 ## Added Support for Rolling Bins 
-averagePerBin <- function(x, binsize, mcolnames=NULL, overlap = NULL)
+averagePerBin <- function(x, binsize, mcolnames=NULL, overlap = NULL, ref_positions = NULL)
 {
   if (!is(x, "GenomicRanges"))
     stop("'x' must be a GenomicRanges object")
   if (any(is.na(seqlengths(x))))
     stop("'seqlengths(x)' contains NAs")
-  if (overlap >= 1) {
+  # If reference regions are provided we use them centered with binsize as bins
+  if (!is.null(ref_positions)) {
+    bins <- ref_positions %>% 
+      anchor_center() %>%           # center regions
+      mutate(width = binSize) %>%   # extend to binsize
+      sortSeqlevels() %>%           # sort
+      sort()
+    seqlevels(bins) <- seqlevels(x)
+    seqinfo(bins) <- seqinfo(x)
+    bins <- bins %>% 
+      #trim() %>%
+      as_tibble() %>% 
+      split(f = .$seqnames) %>%
+      map(~as_iranges(.)) %>%
+      IRangesList(.)
+  } else if (overlap >= 1) {
     tiles <- tileGenome(seqinfo(x),
                         tilewidth = overlap,
                         cut.last.tile.in.chrom = T)
@@ -136,7 +151,6 @@ averagePerBin <- function(x, binsize, mcolnames=NULL, overlap = NULL)
     unlist(viewMeans(views_list), use.names = FALSE)
   }
   mcols(ans) <- DataFrame(lapply(mcols(x)[mcolnames], averageMCol))
-  
   ans
 }
 
@@ -147,7 +161,9 @@ inFiles <- grep(".bw",args , value = T)
 
 fileNames <- args[-grep(".bw",args)]
 fileNames <- fileNames[-grep(".txt", fileNames)]
+fileNames <- fileNames[-grep(".bed", fileNames)]
 fileNames <- gsub("[][, ]","" ,fileNames)
+ref_positions <- read_bed(grep(".bed", args, value = T))
 
 chrSizes <- read.table(grep(".txt",args, value = T))
 colnames(chrSizes) <- c("seqnames","size")

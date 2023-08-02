@@ -18,7 +18,7 @@ include{occupancy; shift} from '../modules/DynNucs'
 //get fuzziness of nucleosomes
 include{fuzziness} from '../modules/fuzziness'
 //get regularity
-include{regularity} from '../modules/regularity'
+include{regularity; regularity_reference} from '../modules/regularity'
 
 
 workflow inspector{
@@ -74,9 +74,11 @@ workflow inspector{
           //fuzziness of nucleosomes
           fuzziness(reference_map.out, nucs2bed.out[0].collect())
 
-          //regularity of nucleosomes  
-          regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(),
-          quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())
-          
+          //regularity of nucleosomes
+          if(params.regularity_ref){
+                regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList(), reference_map.out)
+          } else {
+                 regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
+          }
 
 }

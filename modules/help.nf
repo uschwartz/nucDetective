@@ -37,6 +37,10 @@ def helpMessage() {
       --minLen          [integer] Minimum insert size length for mono-nucleosome selection (default: 140)
       --maxLen          [integer] Maximum insert size length for mono-nucleosome selection (default: 200)
       --MAPQC           [integer] Minimum mapping quality (default: 20)
+      --nrl_regions	[string] A BED file containing regions for which nrls should be calculated
+
+    inspector optional arguments:
+    --regularity_ref    [boolean] Use reference map as reference positions for regularity (default: true)
      """.stripIndent()
      println ''
 }
