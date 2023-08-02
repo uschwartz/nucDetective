@@ -6,7 +6,7 @@ args <- commandArgs(TRUE)
 values_files <- list.files()
 
 values2plot<- read.csv(values_files[1])
-for (i in 2:length(value_files)){
+for (i in 2:length(values_files)){
   values2plot <- rbind(values2plot, read.csv(values_files[i]))
 }
 
@@ -21,5 +21,5 @@ ggplot(values2plot, aes(x = condition, y = nrls)) +
   coord_cartesian(ylim = ylim1*1.05)+
   labs(title = paste0("Comparison of NRLs under different conditions"))+ theme_bw()+ ylab("NRLs")+
   geom_text(data = meds, aes(x = condition, y = med, label = med), 
-            size = 3, vjust = -1.4)
+            size = 3, vjust = -1.4)+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 dev.off()
