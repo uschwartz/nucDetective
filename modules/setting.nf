@@ -6,7 +6,7 @@ def settings() {
         println ''
          log.info """\
 
-                  nucMACC   P I P E L I N E
+                  nucDetective   P I P E L I N E
                   =============================
                   Path variables used in analysis
                   csvInput :            ${params.csvInput}
@@ -22,6 +22,18 @@ def settings() {
                   publishBam:           ${params.publishBam}
                   publishBamFlt:        ${params.publishBamFlt}
                   OmitPublishWig:       ${params.OmitPublishWig}
+                  
+
+                  'profiler' options
+                  
+                  minLen:              ${params.minLen}
+                  maxLen:              ${params.maxLen}
+                  MAPQC:                ${params.MAPQC}
+                  peaks_used:           ${params.peaks_used}
+		  nrl_regions:		${params.nrl_regions}
+		  
+                  'inspector' options:
+                  regularity_ref:       ${params.regularity_ref}
 
                   """.stripIndent()
 

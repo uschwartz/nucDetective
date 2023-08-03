@@ -11,13 +11,6 @@ maxSize<-args[2]
 #defining color palette
 dark2 <- c(RColorBrewer::brewer.pal(8, "Dark2"),RColorBrewer::brewer.pal(8, "Set1"),RColorBrewer::brewer.pal(8, "Set2"))
 
-
-#setting work directory
-#work.path <- args[1]
-#work.path<-"~/Analysis/MNase_Yeast/H2B_IP/work_H2B_IP_rep1/88/"
-#setwd(work.path)
-
-
 files<-list.files(path="." ,pattern = "insert_size_histogram.txt", full.names = TRUE, recursive = TRUE)
 
 #sample names

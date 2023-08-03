@@ -15,6 +15,10 @@ include{make_TSS_plots} from '../modules/make_TSS_plots'
 include{score_peaks;  pca; correlation} from '../modules/score_peaks'
 //get dynamic nucleosomes
 include{occupancy; shift} from '../modules/DynNucs'
+//get fuzziness of nucleosomes
+include{fuzziness} from '../modules/fuzziness'
+//get regularity
+include{regularity; regularity_reference} from '../modules/regularity'
 
 
 workflow inspector{
@@ -46,7 +50,8 @@ workflow inspector{
           .set{sorted_ch}
           reference_map(nucs2bed.out[0].collect(), sorted_ch)
           reference_map_all(nucs2bed.out[1].collect(), sorted_ch)
-
+         
+          
           quantNorm.out[0].mix(ref_bw.out[0]).map{name,bw -> bw}.set{bw_ch}
 
           //TSS_Profile
@@ -65,5 +70,15 @@ workflow inspector{
           // dynamic nucleosomes
           occupancy(score_peaks.out[0])
           shift(reference_map.out, bw_ch.collect())
+
+          //fuzziness of nucleosomes
+          fuzziness(reference_map.out, nucs2bed.out[0].collect())
+
+          //regularity of nucleosomes
+          if(params.regularity_ref){
+                regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList(), reference_map.out)
+          } else {
+                 regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
+          }
 
 }

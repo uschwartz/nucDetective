@@ -1,6 +1,6 @@
 process danpos_nuc{
   container 'uschwartz/danpos'
-  memory { params.genomeSize > 200000000 ? 50.GB : 16.GB }
+  memory { params.genomeSize > 200000000 ? '47.GB' : '15.GB' }
 
 
 

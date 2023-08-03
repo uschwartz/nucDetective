@@ -21,6 +21,8 @@ include{statistics_read; statistics_plot} from '../modules/fragment_statistics'
 include{TSS_profile;TSS_profile_plot} from '../modules/get_TSS_profile'
 //TSS Profile monoNucs
 include{make_TSS_plots} from '../modules/make_TSS_plots'
+//Nucleosome repeat length
+include{NRL; NRL_overview; NRL_regions; compare_NRL_regions} from '../modules/NRL' 
 
 
 
@@ -41,10 +43,9 @@ workflow profiler{
         //Fragment sizes
         InsertSize_Histogram(qualimap.out[0].collect())
         // get mono-nucleosome fragments
-        sieve(alignment.out[1])
+        sieve(alignment.out[3])
         //get chrom_Sizes
-        chrsize(sieve.out[1].map{name,bam -> file(bam)}.collectFile(sort:true)
-        .first())
+        chrsize(sieve.out[1].map{name,bam -> file(bam)}.collect(sort:true).map { it[0] })
         //get nucleosome profiles
         danpos(sieve.out[1], chrsize.out)
         //FragmentStatistics
@@ -62,5 +63,12 @@ workflow profiler{
                 TSS_profile_plot(TSS_profile.out)
                 make_TSS_plots(TSS_profile_plot.out)
         }
-        
+
+        //NRL
+        if(params.nrl_regions){
+                NRL_regions(sieve.out[2].map{id, bam, idx -> id}, sieve.out[2].map{id, bam, idx -> bam}, sieve.out[2].map{id, bam, idx -> idx})
+                compare_NRL_regions(NRL_regions.out[1].collect())
+        }else{
+        NRL(sieve.out[2].map{id, bam, idx -> id}, sieve.out[2].map{id, bam, idx -> bam}, sieve.out[2].map{id, bam, idx -> idx})
+        NRL_overview(NRL.out[1].collect())}
 }
