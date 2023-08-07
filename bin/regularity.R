@@ -163,7 +163,11 @@ fileNames <- args[-grep(".bw",args)]
 fileNames <- fileNames[-grep(".txt", fileNames)]
 fileNames <- fileNames[-grep(".bed", fileNames)]
 fileNames <- gsub("[][, ]","" ,fileNames)
-ref_positions <- read_bed(grep(".bed", args, value = T))
+
+if(grepl(".bed", args) > 0){
+  ref_positions <- read_bed(grep(".bed", args, value = T))
+  }
+
 
 chrSizes <- read.table(grep(".txt",args, value = T))
 colnames(chrSizes) <- c("seqnames","size")
@@ -249,7 +253,7 @@ cutoff_slope <- 3
 rankedDat <- averagePerBin(var_out,
                            binsize = binSize,
                            mcolnames = "score",
-                           overlap = 200) %>%
+                           overlap = 200, ref_positions = reference_positions) %>%
   as_tibble() %>% 
   group_by(seqnames, start, end) %>% 
   ungroup() %>% 

@@ -88,7 +88,7 @@ highFuzNucs <- ranked_dat %>% filter(var_rank>cutOff) %>% pull(nucID)
 
 
 # Plot 
-ranked_dat %>% ggplot(aes(x = var_rank, y = norm_var)) +
+plot_var <- ranked_dat %>% ggplot(aes(x = var_rank, y = norm_var)) +
   geom_point() +
   geom_point(data = ranked_dat %>% filter(var_rank>cutOff), aes(x = var_rank, y = norm_var), color = "#EF6461") +
   geom_vline(xintercept = cutOff, linetype = "dashed") +
@@ -97,7 +97,7 @@ ranked_dat %>% ggplot(aes(x = var_rank, y = norm_var)) +
        y = "norm. variance of fuzziness scores") +
   labs_pubr()
 
-ggsave(paste0("var_cutoff_DANPOS.pdf"), width = 4, height = 4)
+ggsave(paste0("var_cutoff_DANPOS.pdf"), plot = plot_var, width = 4, height = 4)
 
 
 # Join Data into one table and clean

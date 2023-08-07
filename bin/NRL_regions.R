@@ -122,7 +122,7 @@ ylim1<- boxplot.stats(nrls_values$nrls)$stats[c(1,5)]
 
 meds <- ddply(nrls_values, .(condition), summarise, med = round(median(nrls, na.rm = T),digits=2))
 
-pdf(paste0("Boxplot_of_NRL_in_regions.pdf"))
+pdf(paste0("Boxplot_of_NRL_in_regions",fileNames".pdf"))
 ggplot(nrls_values, aes(x = condition, y = nrls)) +
   geom_boxplot()+
   coord_cartesian(ylim = ylim1*1.05)+
