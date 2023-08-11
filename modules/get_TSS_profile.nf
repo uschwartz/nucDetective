@@ -4,6 +4,7 @@ process TSS_profile{
 
   input:
   file(bw)
+  file(tss)
 
   output:
   file "computeMatrix2plot_mono.txt.gz"
@@ -12,7 +13,7 @@ process TSS_profile{
   script:
   """
   computeMatrix reference-point -S $bw \
-   -R $params.TSS \
+   -R $tss \
    --referencePoint TSS \
    -o "computeMatrix2plot_mono.txt.gz" \
    -b 1500 -a 1500 --smartLabels -p $task.cpus

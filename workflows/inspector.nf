@@ -56,7 +56,10 @@ workflow inspector{
 
           //TSS_Profile
           if(params.TSS){
-                  TSS_profile(bw_ch.collect())
+               tss_ch = Channel.fromPath(params.TSS)
+        }
+          if(params.TSS){
+                  TSS_profile(bw_ch.collect(),tss_ch)
                   TSS_profile_plot(TSS_profile.out)
                   make_TSS_plots(TSS_profile_plot.out)
           }
@@ -72,10 +75,10 @@ workflow inspector{
           shift(reference_map.out, bw_ch.collect())
 
           //fuzziness of nucleosomes
-          fuzziness(reference_map.out, nucs2bed.out[0].collect())
+          fuzziness(reference_map.out, nucs2bed.out[1].collect())
 
           //regularity of nucleosomes
-          if(params.regularity_ref = true){
+          if(params.regularity_ref){
                 regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList(), reference_map.out)
           } else {
                  regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       

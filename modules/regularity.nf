@@ -1,12 +1,12 @@
 process regularity{
     container 'leoschmutterer/regularity:v1.1'
-    cpus = 5
+    cpus = 4
     memory = { 4.GB * task.cpus }
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Irregular_Regions/", mode: 'copy', pattern: "Irregular*"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/ResultTable/", mode: 'copy', pattern: "*.tsv"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Cutoff/", mode: 'copy', pattern: "*.pdf"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/PSD/", mode: 'copy', pattern: "PSD_avgNRL_*.bw"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "Irregular*"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "*.tsv"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "*.png"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/PSD/", mode: 'copy', pattern: "PSD_avgNRL_*.bw"
 
     input: 
     val(sampleID)
@@ -14,7 +14,7 @@ process regularity{
 
     output:
     
-    file("*.pdf")
+    file("*.png")
     file("*.bed")
     file("*.bw")
     file("*.tsv")
@@ -27,12 +27,12 @@ process regularity{
 
 process regularity_reference{
     container 'leoschmutterer/regularity:v1.1'
-    cpus = 5
+    cpus = 4
     memory = { 4.GB * task.cpus }
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/Irregular_Regions/", mode: 'copy', pattern: "Irregular*"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "Irregular*"
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/ResultTable/", mode: 'copy', pattern: "*.tsv"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/Cutoff/", mode: 'copy', pattern: "*.pdf"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "*.tsv"
+    publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "*.png"
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/PSD/", mode: 'copy', pattern: "PSD_avgNRL_*.bw"
 
     input: 
@@ -42,7 +42,7 @@ process regularity_reference{
 
     output:
     
-    file("*.pdf")
+    file("*.png")
     file("*.bed")
     file("*.bw")
     file("*.tsv")
