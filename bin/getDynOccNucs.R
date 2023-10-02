@@ -18,6 +18,7 @@ colnames(val)<-gsub("_qNorm","",colnames(val))
 
 #rlog transformation
 mx<-round(as.matrix(val)*100,digits = 0)
+mx[which(is.na(mx)==T)]<-0
 rld<-rlog(mx)
 
 #calculate the variance of each peak over all timepoints

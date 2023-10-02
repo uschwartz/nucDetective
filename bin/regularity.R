@@ -75,9 +75,8 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
   ctp <- x %>% basename() %>% 
     tools::file_path_sans_ext() %>%
     str_split(pattern = "_",simplify = T) %>%
-    .[1,4] %>%
-    str_split(pattern = "\\.",simplify = T) %>% 
-    .[1,1]
+    .[1,-1] %>% .[-1] %>%
+    str_split(pattern = "\\.",simplify = T)
   
   # Round and filter for NRL nearest to avg NRL
   psd_gr <- psd_dat %>%
@@ -189,6 +188,7 @@ avgNRL <- 180
 
 psd_files <- list.files(pattern = "*.rds", full.names = T)
 
+
 # get spectral power corresponding to the average expected NRL for each sample 
 psd_df <- psd_files %>%
   map_df(get_psd_avgNRL,
@@ -278,6 +278,6 @@ write.table(rankedDat[order(rankedDat$score, decreasing =T),],
 rankedDat %>%
   filter(var_rank > cutOff) %>% 
   as_granges() %>%
-  reduce() %>% # collapse bins into single bin if they are overlapping
+  GenomicRanges::reduce() %>% # collapse bins into single bin if they are overlapping
   write_bed(file = paste0("Irregular_Regions_bs", binSize, "_10xlog_reduced_filt.bed"))
 

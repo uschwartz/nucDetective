@@ -1,5 +1,6 @@
 process fuzziness{
-  container 'uschwartz/r_core:v4.2'
+  container 'leoschmutterer/fuzziness:v1.0'
+  memory { params.genomeSize > 200000000 ? '60.GB' : '30.GB'}
   publishDir "${params.outDir}/RUN/06_DYNAMIC_NUCS/fuzziness", mode: 'copy'
 
   input:

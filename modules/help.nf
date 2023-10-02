@@ -30,6 +30,12 @@ def helpMessage() {
       --publishBamFlt   [boolean]if set, size selected bam files will be written to outDir (default: false)
       --OmitPublishWig  [boolean]if set, wig files will not be written to outDir (default: false)
 
+<<<<<<< Updated upstream
+=======
+    inspector optional arguments:
+    --regularity_ref    [boolean] Use reference map as reference positions for regularity (default: true)
+    --normalize_profiles [boolean] Normalize nucleosome profile prior to analysis (default: true)
+>>>>>>> Stashed changes
      """.stripIndent()
      println ''
 }

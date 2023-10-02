@@ -17,6 +17,7 @@ library(tidyverse)
 library(plyranges)
 library(stringr)
 library(ggpubr)
+library(tidyfast)
 
 # Main --------------------------------------------------------------------
 
@@ -36,7 +37,7 @@ inDat <- inFiles %>%
   set_names(fileNames) %>%
   map_df(~read_bed(.x) %>% 
            as_tibble(), .id = "timepoints") %>% 
-  separate(name, into = c("occ","dyad"), sep = "_") %>% 
+  dt_separate(name, into = c("occ","dyad"), sep = "_") %>% 
   mutate(occ = as.numeric(occ), fuz = score)
 
 # Select timepoint and fuzziness score from nucleosome data
@@ -44,10 +45,20 @@ fuz2 <- inDat %>%
   as_granges() %>%
   plyranges::select(fuz, timepoints)
 
+rm(inDat)
+gc()
+
 # Get overlap of reference with timepoint nucleosome data
 hits <- findOverlaps(refPos,fuz2)
 gr.over <- pintersect(refPos[queryHits(hits)],fuz2[subjectHits(hits)])
+
+rm(hits)
+gc()
+
 w <- width(gr.over)
+
+rm(gr.over)
+gc()
 
 # Join reference with nucleosome fuzziness data and select for each reference 
 # position the nucleosome with the largest overlap
@@ -73,6 +84,9 @@ ranked_dat <- refFuz %>%
   mutate(var_rank = 1:dplyr::n(),
          var_rank = var_rank/max(var_rank),
          norm_var = var/max(var))
+
+
+gc()
 
 # fit curve and get slope cutoff
 slope_at_cutoff = 3
@@ -111,6 +125,13 @@ refFuzTableAllTP <- refFuz %>%
   ungroup() %>%
   dplyr::select(-c(overlap, fuz, var_rank, norm_var, var))
 
+<<<<<<< Updated upstream
+=======
+rm(ranked_dat, highFuzNucs)
+gc()
+
+colnames(refFuzTableAllTP)[1] <- "chr"
+>>>>>>> Stashed changes
 # Save Data table with all relevant datacolumns
 refFuzTableAllTP %>% 
   dplyr::select(-c(width, strand, name, score)) %>% 
