@@ -1,14 +1,5 @@
 process regularity{
     container 'leoschmutterer/regularity:v1.1'
-<<<<<<< Updated upstream
-    cpus = 5
-    memory = { 4.GB * task.cpus }
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Irregular_Regions/", mode: 'copy', pattern: "Irregular*"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/ResultTable/", mode: 'copy', pattern: "*.tsv"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/Cutoff/", mode: 'copy', pattern: "*.pdf"
-    publishDir "${params.outDir}/RUN/07_REGULARITY/PSD/", mode: 'copy', pattern: "PSD_avgNRL_*.bw"
-=======
     cpus = 4
     memory = { 15.GB * task.cpus }
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "Irregular*"
@@ -16,7 +7,7 @@ process regularity{
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "*.tsv"
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "*.png"
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/PSD/", mode: 'copy', pattern: "PSD_avgNRL_*.bw"
->>>>>>> Stashed changes
+
 
     input: 
     val(sampleID)
@@ -34,8 +25,6 @@ process regularity{
   regularity.R $sampleID $bw $params.chrSizes
   """
 }
-<<<<<<< Updated upstream
-=======
 
 process regularity_reference{
     container 'leoschmutterer/regularity:v1.1'
@@ -64,4 +53,3 @@ process regularity_reference{
   regularity.R $sampleID $bw $params.chrSizes $reference_positions
   """
 }
->>>>>>> Stashed changes

@@ -22,9 +22,7 @@ def settings() {
                   publishBam:           ${params.publishBam}
                   publishBamFlt:        ${params.publishBamFlt}
                   OmitPublishWig:       ${params.OmitPublishWig}
-<<<<<<< Updated upstream
-=======
-                  
+
 
                   'profiler' options
                   
@@ -37,7 +35,6 @@ def settings() {
                   'inspector' options:
                   normalize_profiles:   ${params.normalize_profiles}
                   regularity_ref:       ${params.regularity_ref}
->>>>>>> Stashed changes
 
                   """.stripIndent()
 

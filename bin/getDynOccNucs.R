@@ -44,8 +44,8 @@ loess.line<-predict(lm)
 
 #get first derivative to deduce the slope of loess function
 loess.f1<-diff(loess.line)/diff(counts_rank)
-#set the slope cutOff to 1
-cutOff<-max(which(loess.f1<3))
+#set the slope cutOff to 3
+cutOff<-max(which(loess.f1<3))+1
 
 
 png("dynOCC_selection.png",
@@ -62,7 +62,7 @@ dev.off()
 
 
 ### select the peaks with highest variance
-idx_var<-var_counts>var_counts_sort[cutOff]
+idx_var<-var_counts>=var_counts_sort[cutOff]
 
 ### generate data table
 df<-data.frame(nucID=names(var_counts), varOCC=var_counts)

@@ -18,7 +18,7 @@ include{occupancy; shift} from '../modules/DynNucs'
 //get fuzziness of nucleosomes
 include{fuzziness} from '../modules/fuzziness'
 //get regularity
-include{regularity} from '../modules/regularity'
+include{regularity; regularity_reference} from '../modules/regularity'
 
 
 workflow inspector{
@@ -70,15 +70,11 @@ workflow inspector{
 
           //TSS_Profile
           if(params.TSS){
-<<<<<<< Updated upstream
-                  TSS_profile(bw_ch.collect())
-=======
-               tss_ch = Channel.fromPath(params.TSS)
+          tss_ch = Channel.fromPath(params.TSS)
         
-                  TSS_profile(bw_ch.collect(),tss_ch)
->>>>>>> Stashed changes
-                  TSS_profile_plot(TSS_profile.out)
-                  make_TSS_plots(TSS_profile_plot.out)
+          TSS_profile(bw_ch.collect(),tss_ch)
+          TSS_profile_plot(TSS_profile.out)
+          make_TSS_plots(TSS_profile_plot.out)
           }
 
           //get score under nucleosomes positions
@@ -92,29 +88,21 @@ workflow inspector{
           shift(reference_map.out, bw_ch.collect())
 
           //fuzziness of nucleosomes
-          fuzziness(reference_map.out, nucs2bed.out[0].collect())
+          fuzziness(reference_map.out, nucs2bed.out[1].collect())
 
-<<<<<<< Updated upstream
-          //regularity of nucleosomes  
-          regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(),
-          quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())
-          
-
-=======
           //regularity of nucleosomes
-          if (params.normalize_profiles){
-          if(params.regularity_ref){
+          if(params.normalize_profiles){
+          	if(params.regularity_ref){
                 regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList(), reference_map.out)
-          } else {
-                 regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
+          	} else {
+                regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
           }
           }
-          else{
+          else {
             if(params.regularity_ref){
                 regularity_reference(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList(), reference_map.out)
-          } else {
-                 regularity(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList())       
-          }
-          }
->>>>>>> Stashed changes
+          	} else {
+                regularity(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList())       
+          		}
+          	}
 }

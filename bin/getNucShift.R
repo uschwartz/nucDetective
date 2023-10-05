@@ -112,7 +112,7 @@ loess.line<-predict(lm)
 #calculate the first derivative
 loess.f1<-diff(loess.line)/diff(pos_rank)
 #define a slope cutoff of 1
-cutOff<-min(which(loess.f1>3))
+cutOff<-max(which(loess.f1<3))+1
 
 png("dynSHIFT_selection.png",
         width = 1280, height = 1280, res =300 )
@@ -128,7 +128,7 @@ dev.off()
 
 
 ### select the peaks with highest variance
-idx_var<-var_pos>var_pos_sort[cutOff]
+idx_var<-var_pos>=var_pos_sort[cutOff]
 
 ############################################
 

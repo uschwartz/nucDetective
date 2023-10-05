@@ -75,8 +75,9 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
   ctp <- x %>% basename() %>% 
     tools::file_path_sans_ext() %>%
     str_split(pattern = "_",simplify = T) %>%
-    .[1,-1] %>% .[-1] %>%
-    str_split(pattern = "\\.",simplify = T)
+    .[1,4] %>%
+    str_split(pattern = "\\.",simplify = T) %>% 
+    .[1,1]
   
   # Round and filter for NRL nearest to avg NRL
   psd_gr <- psd_dat %>%
@@ -86,8 +87,7 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
     as_granges()
   
   # Correct for different seqlevels
-  corrected_chrSizes <- chrSizes %>% filter(seqnames %in% seqnames(psd_gr)) 
-  #  psd_gr <- dropSeqlevels(psd_gr, value = seqlevels(psd_gr)[!(seqlevels(psd_gr) %in% ccS$seqnames)],pruning.mode = "coarse")
+  corrected_chrSizes <- chrSizes %>% filter(seqnames %in% seqnames(psd_gr))
   
   seqlengths(psd_gr) <- corrected_chrSizes$size
   write_bigwig(psd_gr, file = paste0("PSD_avgNRL_",avgNRL,"_", ctp, ".bw"))
@@ -98,13 +98,28 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
 
 ## Function from https://divingintogeneticsandgenomics.rbind.io/post/compute-averages-sums-on-granges-or-equal-length-bins/
 ## Added Support for Rolling Bins 
-averagePerBin <- function(x, binsize, mcolnames=NULL, overlap = NULL)
+averagePerBin <- function(x, binsize, mcolnames=NULL, overlap = NULL, ref_positions = NULL)
 {
   if (!is(x, "GenomicRanges"))
     stop("'x' must be a GenomicRanges object")
   if (any(is.na(seqlengths(x))))
     stop("'seqlengths(x)' contains NAs")
-  if (overlap >= 1) {
+  # If reference regions are provided we use them centered with binsize as bins
+  if (!is.null(ref_positions)) {
+    bins <- ref_positions %>% 
+      anchor_center() %>%           # center regions
+      mutate(width = binSize) %>%   # extend to binsize
+      sortSeqlevels() %>%           # sort
+      sort()
+    seqlevels(bins) <- seqlevels(x)
+    seqinfo(bins) <- seqinfo(x)
+    bins <- bins %>% 
+      #trim() %>%
+      as_tibble() %>% 
+      split(f = .$seqnames) %>%
+      map(~as_iranges(.)) %>%
+      IRangesList(.)
+  } else if (overlap >= 1) {
     tiles <- tileGenome(seqinfo(x),
                         tilewidth = overlap,
                         cut.last.tile.in.chrom = T)
@@ -136,7 +151,6 @@ averagePerBin <- function(x, binsize, mcolnames=NULL, overlap = NULL)
     unlist(viewMeans(views_list), use.names = FALSE)
   }
   mcols(ans) <- DataFrame(lapply(mcols(x)[mcolnames], averageMCol))
-  
   ans
 }
 
@@ -147,7 +161,14 @@ inFiles <- grep(".bw",args , value = T)
 
 fileNames <- args[-grep(".bw",args)]
 fileNames <- fileNames[-grep(".txt", fileNames)]
+fileNames <- fileNames[-grep(".bed", fileNames)]
 fileNames <- gsub("[][, ]","" ,fileNames)
+
+#optional ref_positions
+if(length(which(grepl(".bed", args)) == T) == 1){
+  ref_positions <- read_bed(grep(".bed", args, value = T))
+  }else{ref_positions <- NULL}
+
 
 chrSizes <- read.table(grep(".txt",args, value = T))
 colnames(chrSizes) <- c("seqnames","size")
@@ -187,7 +208,6 @@ inFiles %>%
 avgNRL <- 180
 
 psd_files <- list.files(pattern = "*.rds", full.names = T)
-
 
 # get spectral power corresponding to the average expected NRL for each sample 
 psd_df <- psd_files %>%
@@ -234,8 +254,10 @@ cutoff_slope <- 3
 rankedDat <- averagePerBin(var_out,
                            binsize = binSize,
                            mcolnames = "score",
-                           overlap = 200) %>%
-  as_tibble() %>% 
+                           overlap = 200, ref_positions = ref_positions) %>%
+  as_tibble()
+
+  rankedDat <- cbind(rankedDat,if (!is.null(ref_positions)){(nucID <- paste0("nuc",1:length(rankedDat$start)))}else{paste0("bin",1:length(rankedDat$start))}) %>%
   group_by(seqnames, start, end) %>% 
   ungroup() %>% 
   arrange(score) %>% 
@@ -243,41 +265,56 @@ rankedDat <- averagePerBin(var_out,
          var_rank = var_rank/max(var_rank),
          norm_var = score/max(score))
 
-# get cutoff for variance rank
-fitx <- smooth.spline(x = rankedDat$var_rank, y = rankedDat$norm_var, nknots = 1000)
-f <- predict(fitx)
-f1 <- predict(fitx, deriv = 1)
-cutOff <- (tail(which(f1$y < cutoff_slope), 1) + 1) / nrow(rankedDat)
+if (!is.null(ref_positions)){
+colnames(rankedDat)[7]<-"nucID"}else{colnames(rankedDat)[7]<-"bins"}
 
+
+span.loess.pre<-1000/length(rankedDat$norm_var)
+span.loess<-ifelse(span.loess.pre<0.05, span.loess.pre, 0.05)
+
+lm<-loess(rankedDat$norm_var~rankedDat$var_rank,span=span.loess)
+#Curve fitting
+loess.line<-predict(lm)
+
+#calculate the first derivative
+loess.f1<-diff(loess.line)/diff(rankedDat$var_rank)
+
+cutOff<-max(which(loess.f1<3))+1
+cutOffval<- rankedDat$var_rank[cutOff]
 # Plot cutoff
-pdf(paste0("10xlogPSD_cutoff_bs", binSize,".pdf"))
+png(paste0("bs", binSize,"_varRegularity_selection.png"),width = 1280, height = 1280, res =300)
 plot(rankedDat$var_rank, rankedDat$norm_var,
      ylab = "norm 10xLog of reference position", 
      xlab = "norm rank", bty = "n", pch = 19)
-points(rankedDat$var_rank[which(rankedDat$var_rank > cutOff)],
-       rankedDat$norm_var[which(rankedDat$var_rank > cutOff)],
+points(rankedDat$var_rank[cutOff:length(rankedDat$norm_var)],
+       rankedDat$norm_var[cutOff:length(rankedDat$norm_var)],
        pch=19, col="#7F81B0")
-lines(f, col = "red")
-abline(v = cutOff, col = "blue", lty = 2)
+lines(rankedDat$var_rank,loess.line, col="red")
+abline(v = rankedDat$var_rank[cutOff], col = "blue", lty = 2)
 dev.off()
 
 # select the peaks with highest variance and write beds
-rankedDat %>%
-  filter(var_rank > cutOff) %>% 
-  as_granges() %>%
+
+rankedDat %>%mutate(name = nucID)%>%
+  dplyr::select(-c(width))%>%
+  filter(var_rank > cutOffval) %>% 
+  as_granges()%>%
   write_bed(file = paste0("Irregular_Regions_bs",binSize, "_10xlog.bed"))
 
 
 
-write.table(rankedDat[order(rankedDat$score, decreasing =T),],
-            file="Regularity_10xlog_result_table.tsv",
-            row.names = FALSE, sep="\t", quote=FALSE, col.names = T)
-
-
 
 rankedDat %>%
-  filter(var_rank > cutOff) %>% 
+  filter(var_rank > cutOffval) %>% 
   as_granges() %>%
-  GenomicRanges::reduce() %>% # collapse bins into single bin if they are overlapping
+  reduce() %>% # collapse bins into single bin if they are overlapping
   write_bed(file = paste0("Irregular_Regions_bs", binSize, "_10xlog_reduced_filt.bed"))
 
+
+colnames(rankedDat)[1]<-"chr"
+category <- rep("normal", length(rankedDat$var_rank))
+category[which(rankedDat$var_rank> cutOffval)]<-"dynamicRegularity"
+rankedDat<-cbind(rankedDat,category)
+rankedDat %>% dplyr::select(-c(width, score, var_rank))%>%arrange(desc(norm_var))%>%
+write.table(file="Regularity_10xlog_result_table.tsv",
+            row.names = FALSE, sep="\t", quote=FALSE, col.names = T)
