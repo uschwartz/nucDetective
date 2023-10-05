@@ -1,7 +1,7 @@
 process regularity{
     container 'leoschmutterer/regularity:v1.1'
     cpus = 4
-    memory = { 4.GB * task.cpus }
+    memory = { 15.GB * task.cpus }
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "Irregular*"
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "*.tsv"
@@ -28,7 +28,7 @@ process regularity{
 process regularity_reference{
     container 'leoschmutterer/regularity:v1.1'
     cpus = 4
-    memory = { 4.GB * task.cpus }
+    memory = { 15.GB * task.cpus }
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "Irregular*"
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "*.tsv"

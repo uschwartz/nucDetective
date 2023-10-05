@@ -18,6 +18,7 @@ colnames(val)<-gsub("_qNorm","",colnames(val))
 
 #rlog transformation
 mx<-round(as.matrix(val)*100,digits = 0)
+mx[which(is.na(mx)==T)]<-0
 rld<-rlog(mx)
 
 #calculate the variance of each peak over all timepoints
@@ -43,7 +44,7 @@ loess.line<-predict(lm)
 
 #get first derivative to deduce the slope of loess function
 loess.f1<-diff(loess.line)/diff(counts_rank)
-#set the slope cutOff to 1
+#set the slope cutOff to 3
 cutOff<-max(which(loess.f1<3))+1
 
 

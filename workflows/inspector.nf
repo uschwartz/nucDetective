@@ -1,6 +1,6 @@
 // load modules
 //quantile normalization
-include{quantNorm;ref_bw} from '../modules/quantileNorm'
+include{quantNorm;ref_bw;wig_to_bw} from '../modules/quantileNorm'
 //nucleosome calling
 include{danpos_nuc} from '../modules/DANPOS_finalnucs'
 //nucleosome format conversion
@@ -28,6 +28,7 @@ workflow inspector{
 
         main:
         //get samples for normalisation
+        if(params.normalize_profiles){
         wig_channel.map{
            name,wig,norm -> tuple(name,wig,norm.toLowerCase())
          }.filter { it[2]!='reference'}.set{sample_ch}
@@ -43,6 +44,19 @@ workflow inspector{
           //nuc calling
           quantNorm.out[1].mix(ref_ch.map{name,wig,norm -> tuple(name,wig)}).set{norm_ch}
           danpos_nuc(norm_ch)
+
+          quantNorm.out[0].mix(ref_bw.out[0]).map{name,bw -> bw}.set{bw_ch}
+          } 
+          else {
+          //get samples
+          wig_channel.map{name,wig,norm -> tuple(name,wig)}.set{sample_ch}
+          //nuc calling
+          danpos_nuc(sample_ch)
+          //get bw
+          wig_to_bw(sample_ch)
+          wig_to_bw.out.map{name,bw -> bw}.set{bw_ch}
+          }
+
           //get top20 percent
           nucs2bed(danpos_nuc.out)
           //get referenceMap
@@ -52,16 +66,15 @@ workflow inspector{
           reference_map_all(nucs2bed.out[1].collect(), sorted_ch)
          
           
-          quantNorm.out[0].mix(ref_bw.out[0]).map{name,bw -> bw}.set{bw_ch}
+          
 
           //TSS_Profile
           if(params.TSS){
-               tss_ch = Channel.fromPath(params.TSS)
-        }
-          if(params.TSS){
-                  TSS_profile(bw_ch.collect(),tss_ch)
-                  TSS_profile_plot(TSS_profile.out)
-                  make_TSS_plots(TSS_profile_plot.out)
+          tss_ch = Channel.fromPath(params.TSS)
+        
+          TSS_profile(bw_ch.collect(),tss_ch)
+          TSS_profile_plot(TSS_profile.out)
+          make_TSS_plots(TSS_profile_plot.out)
           }
 
           //get score under nucleosomes positions
@@ -78,10 +91,18 @@ workflow inspector{
           fuzziness(reference_map.out, nucs2bed.out[1].collect())
 
           //regularity of nucleosomes
-          if(params.regularity_ref){
+          if(params.normalize_profiles){
+          	if(params.regularity_ref){
                 regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList(), reference_map.out)
-          } else {
-                 regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
+          	} else {
+                regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
           }
-
+          }
+          else {
+            if(params.regularity_ref){
+                regularity_reference(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList(), reference_map.out)
+          	} else {
+                regularity(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList())       
+          		}
+          	}
 }

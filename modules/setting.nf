@@ -35,6 +35,19 @@ def settings() {
                   'inspector' options:
                   regularity_ref:       ${params.regularity_ref}
 
+
+                  'profiler' options
+                  
+                  minLen:              ${params.minLen}
+                  maxLen:              ${params.maxLen}
+                  MAPQC:                ${params.MAPQC}
+                  peaks_used:           ${params.peaks_used}
+		  nrl_regions:		${params.nrl_regions}
+		  
+                  'inspector' options:
+                  normalize_profiles:   ${params.normalize_profiles}
+                  regularity_ref:       ${params.regularity_ref}
+
                   """.stripIndent()
 
         println ''

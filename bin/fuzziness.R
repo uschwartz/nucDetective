@@ -17,6 +17,7 @@ library(tidyverse)
 library(plyranges)
 library(stringr)
 library(ggpubr)
+library(tidyfast)
 
 # Main --------------------------------------------------------------------
 
@@ -36,7 +37,7 @@ inDat <- inFiles %>%
   set_names(fileNames) %>%
   map_df(~read_bed(.x) %>% 
            as_tibble(), .id = "timepoints") %>% 
-  separate(name, into = c("occ","dyad"), sep = "_") %>% 
+  dt_separate(name, into = c("occ","dyad"), sep = "_") %>% 
   mutate(occ = as.numeric(occ), fuz = score)
 
 # Select timepoint and fuzziness score from nucleosome data
@@ -44,11 +45,13 @@ fuz2 <- inDat %>%
   as_granges() %>%
   plyranges::select(fuz, timepoints)
 
+rm(inDat)
 # Get overlap of reference with timepoint nucleosome data
 hits <- findOverlaps(refPos,fuz2)
 gr.over <- pintersect(refPos[queryHits(hits)],fuz2[subjectHits(hits)])
 w <- width(gr.over)
 
+rm(hits, gr.over)
 # Join reference with nucleosome fuzziness data and select for each reference 
 # position the nucleosome with the largest overlap
 refFuz <- refPos %>% 

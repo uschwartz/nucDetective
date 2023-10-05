@@ -38,3 +38,19 @@ process ref_bw{
   mv $ref $sampleID"_qNorm.wig"
   """
 }
+
+process wig_to_bw{
+  container 'uschwartz/danpos'
+  publishDir "${params.outDir}/RUN/01_BIGWIG_PROFILES", mode: 'copy', pattern: "*.bw"
+
+  input:
+  tuple val(sampleID), file(wig)
+  output:
+  tuple val(sampleID), file("*.bw")
+
+
+  script:
+  """
+  wigToBigWig $wig -clip $params.chrSizes $sampleID".bw"
+  """
+}

@@ -40,7 +40,9 @@ def helpMessage() {
       --nrl_regions	[string] A BED file containing regions for which nrls should be calculated
 
     inspector optional arguments:
-    --regularity_ref    [boolean] Use reference map as reference positions for regularity (default: true)
+    --regularity_ref     [boolean] Use reference map as reference positions for regularity (default: true)
+    --normalize_profiles [boolean] Normalize nucleosome profile prior to analysis (default: true)
+
      """.stripIndent()
      println ''
 }
