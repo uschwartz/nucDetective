@@ -45,6 +45,8 @@ if(params.analysis=='profiler'){
         samples_fwd_ch.mix(samples_rev_ch).set{sampleSingle_ch}
         //Channel for alignment
         samples_fwd_ch.join(samples_rev_ch).set{samplePair_ch}
+
+        
 }
 
 if(params.analysis=='inspector'){

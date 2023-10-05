@@ -1,5 +1,5 @@
 process score_peaks{
-  label 'mid'
+  label 'big'
   memory '15.GB'
   publishDir "${params.outDir}/RUN/04_NUC_SCORES/", mode: 'copy'
 

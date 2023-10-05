@@ -17,6 +17,7 @@ library(tidyverse)
 library(plyranges)
 library(stringr)
 library(ggpubr)
+library(tidyfast)
 
 # Main --------------------------------------------------------------------
 
@@ -36,7 +37,7 @@ inDat <- inFiles %>%
   set_names(fileNames) %>%
   map_df(~read_bed(.x) %>% 
            as_tibble(), .id = "timepoints") %>% 
-  separate(name, into = c("occ","dyad"), sep = "_") %>% 
+  dt_separate(name, into = c("occ","dyad"), sep = "_") %>% 
   mutate(occ = as.numeric(occ), fuz = score)
 
 # Select timepoint and fuzziness score from nucleosome data
@@ -44,11 +45,13 @@ fuz2 <- inDat %>%
   as_granges() %>%
   plyranges::select(fuz, timepoints)
 
+rm(inDat)
 # Get overlap of reference with timepoint nucleosome data
 hits <- findOverlaps(refPos,fuz2)
 gr.over <- pintersect(refPos[queryHits(hits)],fuz2[subjectHits(hits)])
 w <- width(gr.over)
 
+rm(hits, gr.over)
 # Join reference with nucleosome fuzziness data and select for each reference 
 # position the nucleosome with the largest overlap
 refFuz <- refPos %>% 
@@ -75,51 +78,61 @@ ranked_dat <- refFuz %>%
 
 # fit curve and get slope cutoff
 slope_at_cutoff = 3
-fitx <- smooth.spline(x = ranked_dat$var_rank, y = ranked_dat$norm_var)
-f <-predict(fitx)
-f1<-predict(fitx, deriv=1)
-# cutoff is the position where the slope is > slope_at_cutoff first time after the 1000 lowest variances. 
-# This is necessary as sometimes the first ones have a quite high predicted slope. 
-cutOff<-(which(f1$y>slope_at_cutoff)[min(which(which(f1$y>slope_at_cutoff) > 1000))])/nrow(ranked_dat)
+span.loess.pre<-1000/length(ranked_dat$norm_var)
+span.loess<-ifelse(span.loess.pre<0.05, span.loess.pre, 0.05)
 
+lm<-loess(ranked_dat$norm_var~ranked_dat$var_rank,span=span.loess)
+#Curve fitting
+loess.line<-predict(lm)
+
+#calculate the first derivative
+loess.f1<-diff(loess.line)/diff(ranked_dat$var_rank)
+
+cutOff<-max(which(loess.f1<3))+1
+
+cutOffval <- ranked_dat$var_rank[cutOff]
 
 # Extract nucIDs of nucleosomes with high variance in fuzziness
-highFuzNucs <- ranked_dat %>% filter(var_rank>cutOff) %>% pull(nucID)
+highFuzNucs <- ranked_dat %>% filter(var_rank>=cutOffval) %>% pull(nucID)
 
 
 # Plot 
-ranked_dat %>% ggplot(aes(x = var_rank, y = norm_var)) +
-  geom_point() +
-  geom_point(data = ranked_dat %>% filter(var_rank>cutOff), aes(x = var_rank, y = norm_var), color = "#EF6461") +
-  geom_vline(xintercept = cutOff, linetype = "dashed") +
-  theme_classic() +
-  labs(x = "normalized rank", 
-       y = "norm. variance of fuzziness scores") +
-  labs_pubr()
-
-ggsave(paste0("var_cutoff_DANPOS.pdf"), width = 4, height = 4)
+png(paste0("dynFUZZ_selection.png"),width = 1280, height = 1280, res =300)
+plot(ranked_dat$var_rank, ranked_dat$norm_var,
+     ylab = "norm 10xLog of reference position", 
+     xlab = "norm rank", bty = "n", pch = 19)
+points(ranked_dat$var_rank[cutOff:length(ranked_dat$norm_var)],
+       ranked_dat$norm_var[cutOff:length(ranked_dat$norm_var)],
+       pch=19, col="#7F81B0")
+lines(ranked_dat$var_rank,loess.line, col="red")
+abline(v = ranked_dat$var_rank[cutOff], col = "blue", lty = 2)
+dev.off()
 
 
 # Join Data into one table and clean
 refFuzTableAllTP <- refFuz %>% 
   left_join(ranked_dat) %>%
-  mutate(fuzzinessVariance = var,
+  mutate(varFuzz = var,
          fuzzinessScore = score, 
-         highFuzVariance = if_else((nucID %in% highFuzNucs), TRUE, FALSE)) %>% 
+         category = if_else((nucID %in% highFuzNucs), "dynamicFuzziness", "normal"),
+         highFuzVariance = if_else((nucID %in% highFuzNucs), T, F)) %>% 
   ungroup() %>%
   dplyr::select(-c(overlap, fuz, var_rank, norm_var, var))
 
+colnames(refFuzTableAllTP)[1] <- "chr"
 # Save Data table with all relevant datacolumns
 refFuzTableAllTP %>% 
-  dplyr::select(-c(width, strand, name, score)) %>% 
-  write_delim(file = paste0("referenceMapped_Fuzziness_table.tsv"), delim = "\t")
+  dplyr::select(-c(width, name, score, timepoints, fuzzinessScore, highFuzVariance))%>%
+  distinct() %>% arrange(desc(varFuzz))%>%
+  write_delim(file = paste0("fuzziness_result_table.tsv"), delim = "\t")
 
+colnames(refFuzTableAllTP)[1] <- "seqnames"
 # Save Bed file with high variance in fuzziness nucleosome positions
 refFuzTableAllTP %>% 
-  dplyr::select(-c(name, score, timepoints, fuzzinessScore)) %>% 
+  dplyr::select(-c(name, score, timepoints, fuzzinessScore, category)) %>% 
   distinct() %>% 
   mutate(name = nucID,
-         score = fuzzinessVariance) %>% 
+         score = varFuzz) %>% 
   filter(highFuzVariance) %>% 
   as_granges() %>% 
-  write_bed(file = paste0("HighFuzNuc.bed"))
+  write_bed(file = paste0("positions_varFUZZ.bed"))

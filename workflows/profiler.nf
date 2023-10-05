@@ -30,6 +30,7 @@ workflow profiler{
         take:
         sampleSingle_ch
         samplePair_ch
+        
 
         main:
         //fastqc of raw data
@@ -58,8 +59,13 @@ workflow profiler{
         .mix(alignment.out[0]).mix(qualimap.out[0]).collect())
 
         //TSS_Profile_mono
+
         if(params.TSS){
-                TSS_profile(danpos.out[0].collect())
+               tss_ch = Channel.fromPath(params.TSS)
+        }
+
+        if(params.TSS){
+                TSS_profile(danpos.out[0].collect(),tss_ch)
                 TSS_profile_plot(TSS_profile.out)
                 make_TSS_plots(TSS_profile_plot.out)
         }
