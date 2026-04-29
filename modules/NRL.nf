@@ -1,6 +1,6 @@
 process NRL {
-    container = 'leoschmutterer/nrl:v2.1'
-    memory = 4.GB
+    container 'leoschmutterer/nrl:v2.1'
+    memory '4.GB'
     publishDir "${params.outDir}/QC/09_NRL/", mode: 'copy', pattern: "*monoNuc.pdf"
     
     input:
@@ -20,8 +20,8 @@ process NRL {
 }
 
 process NRL_overview {
-    container = 'leoschmutterer/nrl:v2.1'
-    memory = 4.GB
+    container 'leoschmutterer/nrl:v2.1'
+    memory '4.GB'
     publishDir "${params.outDir}/RUN/03_NRL/", mode: 'copy'
 
     input:
@@ -38,7 +38,7 @@ process NRL_overview {
 }
 
 process NRL_regions {
-	container = 'leoschmutterer/nrl_regions:v1.1'
+	container 'leoschmutterer/nrl_regions:v1.1'
 	label 'big'
 	memory '16.GB'
 	publishDir "${params.outDir}/RUN/03_NRL/NRL_Regions/Single/", mode: 'copy', pattern: "*.bed"
@@ -62,7 +62,7 @@ process NRL_regions {
 }
 
 process compare_NRL_regions {
-    container = 'leoschmutterer/nrl_regions:v1.1'
+    container 'leoschmutterer/nrl_regions:v1.1'
     publishDir "${params.outDir}/RUN/03_NRL/NRL_Regions/Summary/", mode: 'copy'
 
     input:
