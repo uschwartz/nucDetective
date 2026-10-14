@@ -203,6 +203,4 @@ Please log all issues/suggestions on the nucDetective GitHub page: https://githu
 Uwe Schwartz: uwe.schwartz@ur.de
 
 ## Cite
-
-Simon Holzinger et al. , Deciphering chromatin architecture and dynamics in Plasmodium falciparum using the nucDetective pipeline.
-bioRxiv DOI: 10.1101/2025.08.13.670116 (https://doi.org/10.1101/2025.08.13.670116)
+Holzinger, S., Schmutterer, L., Rothe, V. M., Watzlowik, M. T., Schwartz, U., & Längst, G. (2026). Deciphering chromatin architecture and dynamics in Plasmodium falciparum using the nucDetective pipeline. PLoS computational biology, 22(7), e1014557. [https://doi.org/10.1371/journal.pcbi.1014557](https://doi.org/10.1371/journal.pcbi.1014557)
