@@ -8,8 +8,7 @@ process alignment{
   }
 
 
-  cpus = (Runtime.runtime.availableProcessors() - (Math.round((Runtime.runtime.availableProcessors()*20)/100)))
-  memory = { 2.GB * task.cpus }
+  // resources (cpus/memory): see process withName:'alignment' in nextflow.config
   publishDir "${params.outDir}/QC/04_ALIGNMENT", mode: 'copy', pattern: "*_alignment_stats.txt"
   publishDir "${params.outDir}/RUN/00_ALIGNMENT", mode: 'copy', pattern: "*_aligned.bam", enabled:params.publishBam
 

@@ -1,6 +1,5 @@
 process TSS_profile{
-  cpus = (Math.round(Runtime.runtime.availableProcessors()*0.8))
-  memory { 2.GB * task.cpus }
+  // resources (cpus/memory): see process withName:'TSS_profile' in nextflow.config
 
   input:
   file(bw)

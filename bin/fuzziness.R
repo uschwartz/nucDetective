@@ -33,11 +33,21 @@ fileNames <- fileNames[order(fileNames)]
 
 
 
-inDat <- inFiles %>%
-  set_names(fileNames) %>%
-  map_df(~read_bed(.x) %>% 
-           as_tibble(), .id = "timepoints") %>% 
-  dt_separate(name, into = c("occ","dyad"), sep = "_") %>% 
+# Load all nucleosome beds. rbindlist over per-file data.frames instead of
+# map_df / bind_rows: one allocation, no per-chunk copying (roughly half the peak
+# RAM on a large genome, where each bed has ~10-17 M rows). read_bed is kept, so BED
+# parsing is unchanged; the resulting table (column set, column order, values, and
+# `timepoints` = fileNames) is identical to the previous map_df output.
+inDat <- data.table::rbindlist(
+  Map(function(.f, .nm) {
+    d <- as.data.frame(read_bed(.f))
+    d$timepoints <- .nm
+    d[c("timepoints", setdiff(names(d), "timepoints"))]
+  }, inFiles, fileNames),
+  use.names = TRUE
+) %>%
+  tibble::as_tibble() %>%
+  dt_separate(name, into = c("occ","dyad"), sep = "_") %>%
   mutate(occ = as.numeric(occ), fuz = score)
 
 # Select timepoint and fuzziness score from nucleosome data

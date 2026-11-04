@@ -91,8 +91,44 @@ Once `Profiler` is completed the `Inpector` can be instructed to analyze nucleos
 
 ### System requirements
 
-* A minimum memory (RAM) of 48 GB for Genomes larger than 200 Mbp and 16 Gb for smaller Genomes.
-* A cpu with a least 4 cores.
+* CPU with at least 4 cores.
+* RAM, depending on the effective genome size:
+    * **≤ 200 Mbp** (e.g. yeast, *Plasmodium*): 16–32 GB.
+    * **> 200 Mbp** (e.g. *Drosophila*, mouse, human): the pipeline requests up to
+      ~96 GB for a single nucleosome-calling task and ~160 GB for the regularity
+      analysis, and retries with more on an out-of-memory kill. A machine with
+      **256 GB** is the practical minimum for human (HeLa/MCF7); 384–512 GB runs
+      comfortably. Lower the ceiling on a smaller box with `--max_memory` /
+      `--max_cpus` (see below) — tasks are then clamped to it (and may still OOM).
+* Disk: on a large genome the intermediate BAM/wig files in the work directory reach
+  tens of GB per sample. Budget generously and clean the work directory after a
+  successful run (`nextflow clean -f`).
+
+#### Tuning resources
+
+Per-task memory and CPU requests live in `nextflow.config` (`process { withName: … }`).
+They scale automatically with `--genomeSize` (the `> 200000000` branch) and double on
+each retry after an OOM. Three knobs, no config edit needed:
+
+| flag | default | effect |
+|------|---------|--------|
+| `--max_memory` | `450.GB` | upper bound for any single task |
+| `--max_cpus`   | `64`     | upper bound for any single task |
+| `--max_time`   | `240.h`  | upper bound for any single task |
+
+Profiles: `-profile lowmem` (30 GB / 6 CPU ceiling, for laptop tests),
+`-profile scratch` (run tasks in node-local scratch, stage results back — use when
+`-w` is on a slow or network disk). Combine with commas.
+
+#### Notes for large / HPC runs
+
+* Launch Nextflow from a directory on a POSIX file system that supports **file locks**
+  (most network mounts — SMB/CIFS, some NFS — do not, and Nextflow aborts immediately
+  with *"needs … a shared file system that supports file locks"*). Point `-w` at fast
+  local storage.
+* DANPOS `dpos` on a 2.9 Gb genome is inherently heavy (single-threaded, genome-wide
+  base-resolution arrays): expect ~60–120 GB peak and several hours per sample even
+  with enough RAM.
 
 ### Other requirements
 * [`Docker`](https://www.docker.com/) or [`Singularity`](https://github.com/sylabs/singularity/) and [`nextflow`](https://www.nextflow.io/) are required to run the nucDetective pipeline. Additional software used in the pipeline is packaged in Docker containers and is automatically downloaded during the first execution of the pipeline.

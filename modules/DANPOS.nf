@@ -1,6 +1,6 @@
 process danpos{
   container 'uschwartz/danpos'
-  memory '15.GB'
+  // resources: see process withName:'danpos' in nextflow.config
   publishDir "${params.outDir}/RUN/01_NUCLEOSOME_PROFILE", mode: 'copy',
   pattern: "*_monoNucs_profile.bw"
   publishDir "${params.outDir}/RUN/01_NUCLEOSOME_PROFILE/wig", mode: 'copy',

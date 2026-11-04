@@ -17,7 +17,7 @@ process fastqc{
 }
 
 process multiqc{
-
+  // resources: see process withName:'multiqc' in nextflow.config
   publishDir "${params.outDir}/QC/multiqc/", mode: 'copy'
 
   input:

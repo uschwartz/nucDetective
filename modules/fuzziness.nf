@@ -1,6 +1,6 @@
 process fuzziness{
   container 'leoschmutterer/fuzziness:v1.0'
-  memory { params.genomeSize > 200000000 ? '60.GB' : '30.GB'}
+  // resources: see process withName:'fuzziness' in nextflow.config
   publishDir "${params.outDir}/RUN/06_DYNAMIC_NUCS/fuzziness", mode: 'copy'
 
   input:

@@ -1,5 +1,6 @@
 process nucs2bed{
   container 'uschwartz/r_nucmacc:v3.1'
+  // resources: see process withName:'nucs2bed' in nextflow.config
   publishDir "${params.outDir}/RUN/03_NUCS/", mode: 'copy'
 
   input:
