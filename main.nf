@@ -23,7 +23,7 @@ workflow {
     // help message
     if (params.help) {
         helpMessage()
-        return
+        exit(0)
     }
 
     // validate parameters
