@@ -29,6 +29,6 @@ process shift{
 
   script:
   """
-  getNucShift.R
+  SHIFT_WORKERS=$task.cpus getNucShift.R
   """
 }

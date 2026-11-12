@@ -3,12 +3,8 @@ process score_peaks{
   // resources: see process withName:'score_peaks' in nextflow.config
   // chrSizes is read (see script: out-of-bounds clip) but passed as a param path,
   // so bind-mount its directory - same pattern as regularity.nf.
-  if(params.container_engine == 'docker'){
-    containerOptions "-v \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
   publishDir "${params.outDir}/RUN/04_NUC_SCORES/", mode: 'copy'
 
   input:

@@ -1,57 +1,54 @@
 /*
-* Show settings at the beginning
+* Show settings at the beginning of a run
 */
 
 def settings() {
-        println ''
-         log.info """\
+    def general = """
+        nucDetective   P I P E L I N E   v${workflow.manifest.version}
+        =============================
+        Path variables used in analysis
+        csvInput:             ${params.csvInput}
+        outDir:               ${params.outDir}
+        genomeIdx:            ${params.genomeIdx}
+        chrSizes:             ${params.chrSizes}
 
-                  nucDetective   P I P E L I N E
-                  =============================
-                  Path variables used in analysis
-                  csvInput :            ${params.csvInput}
-                  outDir   :            ${params.outDir}
-                  genomeIdx:            ${params.genomeIdx}
-                  chrSizes:             ${params.chrSizes}
+        General options
+        analysis:             ${params.analysis}
+        test:                 ${params.test}
+        container_engine:     ${params.container_engine}
+        scratch_dir:          ${params.scratch_dir}
+        TSS:                  ${params.TSS}
+        genomeSize:           ${params.genomeSize}
+        """.stripIndent()
 
-                  General options
-                  container_engine:     ${params.container_engine}
-                  analysis:             ${params.analysis}
-                  blacklist:            ${params.blacklist}
-                  genomeSize:           ${params.genomeSize}
-                  TSS:                  ${params.TSS}
-                  publishBam:           ${params.publishBam}
-                  publishBamFlt:        ${params.publishBamFlt}
-                  OmitPublishWig:       ${params.OmitPublishWig}
-                  
+    def profiler = """
+        'profiler' options
+        blacklist:            ${params.blacklist}
+        MAPQC:                ${params.MAPQC}
+        minLen:               ${params.minLen}
+        maxLen:               ${params.maxLen}
+        peaks_used:           ${params.peaks_used}
+        nrl_regions:          ${params.nrl_regions}
+        publishBam:           ${params.publishBam}
+        publishBamFlt:        ${params.publishBamFlt}
+        OmitPublishWig:       ${params.OmitPublishWig}
+        """.stripIndent()
 
-                  'profiler' options
-                  
-                  minLen:              ${params.minLen}
-                  maxLen:              ${params.maxLen}
-                  MAPQC:                ${params.MAPQC}
-                  peaks_used:           ${params.peaks_used}
-		  nrl_regions:		${params.nrl_regions}
-		  
-                  'inspector' options:
-                  regularity_ref:       ${params.regularity_ref}
+    def inspector = """
+        'inspector' options
+        normalize_profiles:   ${params.normalize_profiles}
+        nucref_min_support:   ${params.nucref_min_support}
+        detect_shift:         ${params.detect_shift}
+        regularity_ref:       ${params.regularity_ref}
+        avgNRL:               ${params.avgNRL}
+        """.stripIndent()
 
+    def resources = """
+        Resource limits (per task)
+        max_cpus:             ${params.max_cpus}
+        max_memory:           ${params.max_memory}
+        max_time:             ${params.max_time}
+        """.stripIndent()
 
-                  'profiler' options
-                  
-                  minLen:              ${params.minLen}
-                  maxLen:              ${params.maxLen}
-                  MAPQC:                ${params.MAPQC}
-                  peaks_used:           ${params.peaks_used}
-		  nrl_regions:		${params.nrl_regions}
-		  
-                  'inspector' options:
-                  normalize_profiles:   ${params.normalize_profiles}
-                  regularity_ref:       ${params.regularity_ref}
-                  avgNRL:               ${params.avgNRL}
-                  detect_shift:         ${params.detect_shift}
-
-                  """.stripIndent()
-
-        println ''
+    log.info general + (params.analysis == 'inspector' ? inspector : profiler) + resources
 }

@@ -46,7 +46,7 @@ workflow profiler{
         // get mono-nucleosome fragments
         sieve(alignment.out[3])
         //get chrom_Sizes
-        chrsize(sieve.out[1].map{name,bam -> file(bam)}.collect(sort:true).map { it[0] })
+        chrsize(sieve.out[1].map{_name,bam -> file(bam)}.collect(sort:true).map { bams -> bams[0] })
         //get nucleosome profiles
         danpos(sieve.out[1], chrsize.out)
         //FragmentStatistics
@@ -61,7 +61,7 @@ workflow profiler{
         //TSS_Profile_mono
 
         if(params.TSS){
-               tss_ch = Channel.fromPath(params.TSS)
+               tss_ch = channel.fromPath(params.TSS)
         }
 
         if(params.TSS){
@@ -72,9 +72,9 @@ workflow profiler{
 
         //NRL
         if(params.nrl_regions){
-                NRL_regions(sieve.out[2].map{id, bam, idx -> id}, sieve.out[2].map{id, bam, idx -> bam}, sieve.out[2].map{id, bam, idx -> idx})
+                NRL_regions(sieve.out[2].map{id, _bam, _idx -> id}, sieve.out[2].map{_id, bam, _idx -> bam}, sieve.out[2].map{_id, _bam, idx -> idx})
                 compare_NRL_regions(NRL_regions.out[1].collect())
         }else{
-        NRL(sieve.out[2].map{id, bam, idx -> id}, sieve.out[2].map{id, bam, idx -> bam}, sieve.out[2].map{id, bam, idx -> idx})
+        NRL(sieve.out[2].map{id, _bam, _idx -> id}, sieve.out[2].map{_id, bam, _idx -> bam}, sieve.out[2].map{_id, _bam, idx -> idx})
         NRL_overview(NRL.out[1].collect())}
 }
