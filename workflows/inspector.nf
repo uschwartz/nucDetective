@@ -31,30 +31,30 @@ workflow inspector{
         if(params.normalize_profiles){
         wig_channel.map{
            name,wig,norm -> tuple(name,wig,norm.toLowerCase())
-         }.filter { it[2]!='reference'}.set{sample_ch}
+         }.filter { row -> row[2] != 'reference' }.set{sample_ch}
          //get reference sample
          wig_channel.map{
             name,wig,norm -> tuple(name,wig,norm.toLowerCase())
-          }.filter { it[2]=='reference'}.set{ref_ch}
+          }.filter { row -> row[2] == 'reference' }.set{ref_ch}
           sample_ch.combine(ref_ch)
           // quantile norm
           quantNorm(sample_ch.combine(ref_ch))
           ref_bw(ref_ch)
 
           //nuc calling
-          quantNorm.out[1].mix(ref_ch.map{name,wig,norm -> tuple(name,wig)}).set{norm_ch}
+          quantNorm.out[1].mix(ref_ch.map{name,wig,_norm -> tuple(name,wig)}).set{norm_ch}
           danpos_nuc(norm_ch)
 
-          quantNorm.out[0].mix(ref_bw.out[0]).map{name,bw -> bw}.set{bw_ch}
+          quantNorm.out[0].mix(ref_bw.out[0]).map{_name,bw -> bw}.set{bw_ch}
           } 
           else {
           //get samples
-          wig_channel.map{name,wig,norm -> tuple(name,wig)}.set{sample_ch}
+          wig_channel.map{name,wig,_norm -> tuple(name,wig)}.set{sample_ch}
           //nuc calling
           danpos_nuc(sample_ch)
           //get bw
           wig_to_bw(sample_ch)
-          wig_to_bw.out.map{name,bw -> bw}.set{bw_ch}
+          wig_to_bw.out.map{_name,bw -> bw}.set{bw_ch}
           }
 
           //get top20 percent
@@ -70,7 +70,7 @@ workflow inspector{
 
           //TSS_Profile
           if(params.TSS){
-          tss_ch = Channel.fromPath(params.TSS)
+          tss_ch = channel.fromPath(params.TSS)
         
           TSS_profile(bw_ch.collect(),tss_ch)
           TSS_profile_plot(TSS_profile.out)
@@ -97,16 +97,16 @@ workflow inspector{
           //regularity of nucleosomes
           if(params.normalize_profiles){
           	if(params.regularity_ref){
-                regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList(), reference_map.out)
+                regularity_reference(quantNorm.out[0].mix(ref_bw.out[0]).map{id, _bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{_id, bw -> bw}.toSortedList(), reference_map.out)
           	} else {
-                regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{id, bw -> bw}.toSortedList())       
+                regularity(quantNorm.out[0].mix(ref_bw.out[0]).map{id, _bw -> id}.toSortedList(), quantNorm.out[0].mix(ref_bw.out[0]).map{_id, bw -> bw}.toSortedList())       
           }
           }
           else {
             if(params.regularity_ref){
-                regularity_reference(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList(), reference_map.out)
+                regularity_reference(wig_to_bw.out.map{id, _bw -> id}.toSortedList(), wig_to_bw.out.map{_id, bw -> bw}.toSortedList(), reference_map.out)
           	} else {
-                regularity(wig_to_bw.out.map{id, bw -> id}.toSortedList(), wig_to_bw.out.map{id, bw -> bw}.toSortedList())       
+                regularity(wig_to_bw.out.map{id, _bw -> id}.toSortedList(), wig_to_bw.out.map{_id, bw -> bw}.toSortedList())       
           		}
           	}
 }

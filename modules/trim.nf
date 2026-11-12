@@ -2,8 +2,8 @@ process trimgalore{
   label 'big'
   // resources: see process withName:'trimgalore' in nextflow.config
   container 'uschwartz/core_docker:v1.0'
-  publishDir "${params.outDir}/QC/02_TRIMMING/${sampleID}", mode: 'copy', pattern: "*trimming_report.txt"
-  publishDir "${params.outDir}/QC/03_TRIMMED_FASTQC/${sampleID}", mode: 'copy', pattern: "*.html"
+  publishDir { "${params.outDir}/QC/02_TRIMMING/${sampleID}" }, mode: 'copy', pattern: "*trimming_report.txt"
+  publishDir { "${params.outDir}/QC/03_TRIMMED_FASTQC/${sampleID}" }, mode: 'copy', pattern: "*.html"
 
 
   input:

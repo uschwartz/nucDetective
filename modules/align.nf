@@ -1,11 +1,7 @@
 process alignment{
 
-  if (params.container_engine == 'docker') {
-    containerOptions "-v \$(dirname ${params.genomeIdx}):\$(dirname ${params.genomeIdx})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.genomeIdx}):\$(dirname ${params.genomeIdx})"
-  }
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.genomeIdx}):\$(dirname ${params.genomeIdx})"
 
 
   // resources (cpus/memory): see process withName:'alignment' in nextflow.config

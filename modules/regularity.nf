@@ -1,11 +1,7 @@
 process regularity{
   
-  if(params.container_engine == 'docker'){
-    containerOptions "-v \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }  
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
 
     container 'leoschmutterer/regularity:v1.1'
     // resources: see process withName:'regularity|regularity_reference' in nextflow.config
@@ -33,12 +29,8 @@ process regularity{
 }
 
 process regularity_reference{
-  if(params.container_engine == 'docker'){
-    containerOptions "-v \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }  
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
 
     container 'leoschmutterer/regularity:v1.1'
     // resources: see process withName:'regularity|regularity_reference' in nextflow.config

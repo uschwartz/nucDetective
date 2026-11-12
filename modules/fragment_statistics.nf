@@ -1,6 +1,6 @@
 process statistics_read{
   container 'uschwartz/r_nucmacc:v3.1'
-  publishDir "${params.outDir}/QC/08_FRAGMENT_STATISTICS/${sampleID}", mode: 'copy'
+  publishDir { "${params.outDir}/QC/08_FRAGMENT_STATISTICS/${sampleID}" }, mode: 'copy'
 
   input:
   tuple val(sampleID), file(sieve_mono), file(fastqc), file(trim),
