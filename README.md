@@ -243,6 +243,32 @@ nextflow run /nucDetective/ \
 ```
 Required options are:  `--analysis inspector`, `--csvInput`, `--outDir`, `--chrSizes`, `--genomeSize`.    
 
+#### About `--genomeSize`
+
+`--genomeSize` has a different role in each workflow:
+
+* **Profiler: it sets the height of the nucleosome profiles.** The value is passed to
+  `danpos.py dpos -c`, which is *"the count of reads to be normalized to"*. Every
+  profile is scaled to this read count, so all values in the profile wig/bigWig files
+  are proportional to `--genomeSize`.
+* **Inspector: resources only.** Here it only selects the memory/CPU branch for
+  genomes > 200 Mbp (see [Tuning resources](#tuning-resources)). It does not change
+  any result.
+
+This matters because the Inspector calls nucleosomes on these profiles with a fixed
+absolute cutoff (`danpos.py dpos --height 25`). A different `--genomeSize` in the
+Profiler therefore changes **which nucleosomes are called**, not only the scale of the
+tracks. With `--normalize_profiles`, all samples are quantile-normalized to the
+reference sample, so its scale carries over to every sample.
+
+Recommendations:
+
+* Set `--genomeSize` to the effective (mappable) genome size of your organism.
+* Use the **same value for every Profiler run** whose wig files go into one Inspector
+  run. Mixing values gives profiles on different scales.
+* If you change `--genomeSize`, re-run the Profiler. Changing it only in the
+  Inspector has no effect on the results.
+
 ## Contact
 
 Please log all issues/suggestions on the nucDetective GitHub page: https://github.com/uschwartz/nucDetective/issues
