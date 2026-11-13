@@ -18,6 +18,33 @@ include { profiler    } from './workflows/profiler'
 include { inspector   } from './workflows/inspector'
 
 
+// Typed parameters. Since Nextflow 26 (strict syntax) values given on the command
+// line arrive as Strings ("--normalize_profiles false" -> "false", which is truthy).
+// Declaring the type here makes Nextflow convert them. Defaults stay in
+// nextflow.config (needed there for config-time settings) and in conf/test_*.config.
+// Not declared on purpose:
+//  - path options that default to false (TSS, blacklist, nrl_regions, scratch_dir):
+//    they are either false or a path, which a single type cannot express
+//  - genomeSize: may exceed Integer range (Long is not accepted on the CLI in
+//    Nextflow 26.10); nextflow.config casts it with `as long`, modules only print it
+params {
+    help:               Boolean
+    test:               Boolean
+    publishBam:         Boolean
+    publishBamFlt:      Boolean
+    OmitPublishWig:     Boolean
+    normalize_profiles: Boolean
+    detect_shift:       Boolean
+    regularity_ref:     Boolean
+    MAPQC:              Integer
+    minLen:             Integer
+    maxLen:             Integer
+    peaks_used:         Integer
+    avgNRL:             Integer
+    nucref_min_support: Integer
+}
+
+
 workflow {
 
     // help message
