@@ -8,7 +8,6 @@
 
 library(tidyverse)
 library(plyranges)
-suppressMessages(library(zoo))
 library(furrr)
 
 args <- commandArgs(TRUE)
@@ -19,13 +18,42 @@ args <- args[-length(args)]
 
 # Functions ---------------------------------------------------------------
 
-# Calculate spectral power density and return the spectra.
-# `keep` optionally restricts the returned spectrum to a subset of frequency indices
-# (the periodogram FFT is computed in full regardless; only the returned vector shrinks).
-getspec <- function(x, keep = NULL) {
-  out <- spec.pgram(x, spans = c(3,3), pad = 1, plot = F)
-  if (is.null(keep)) return(out$spec)
-  return(out$spec[keep])
+# Closed form of spec.pgram(x, spans = c(3,3), pad = 1, plot = F)$spec[keep] for
+# a window of length `width` (defaults taper = 0.1, detrend = TRUE, fast = TRUE).
+# Detrend, taper, zero-padding and the DFT are all linear in the window, so the
+# raw periodogram at frequency index f is |b_f . x|^2 for a fixed complex vector
+# b_f; the modified-Daniell smoothing (incl. spec.pgram's DC replacement and the
+# circular wrap) is a fixed linear combination of a few such terms. Returns
+#   B : width x 2*nJ real matrix (Re | Im of the needed b_f)
+#   W : nJ x length(keep) smoothing weights (already divided by N0 and u2)
+# so that spec = ((X %*% B)[, Re]^2 + (X %*% B)[, Im]^2) %*% W for a matrix X
+# whose rows are windows. Matches spec.pgram to ~1e-13 relative (scratchpad/).
+psd_projection <- function(width, keep, spans = c(3,3), taper = 0.1, pad = 1) {
+  N0 <- width
+  N  <- nextn(N0 * (1 + pad))
+  k  <- kernel("modified.daniell", spans %/% 2)
+  m  <- k$m
+  kw <- k[-m:m]
+  W  <- matrix(0, N, length(keep))
+  for (c in seq_along(keep)) {
+    p <- keep[c] + 1L                     # spec index i is pgram index i + 1
+    for (l in -m:m) {
+      q <- ((p - l - 1L) %% N) + 1L       # circular kernapply
+      if (q == 1L) {                      # pgram[1] := 0.5 * (pgram[2] + pgram[N])
+        W[2L, c] <- W[2L, c] + 0.5 * kw[l + m + 1L]
+        W[N,  c] <- W[N,  c] + 0.5 * kw[l + m + 1L]
+      } else W[q, c] <- W[q, c] + kw[l + m + 1L]
+    }
+  }
+  J  <- which(rowSums(W != 0) > 0)
+  W  <- W[J, , drop = FALSE] / (N0 * (1 - (5/8) * taper * 2))
+  tt <- seq_len(N0) - (N0 + 1) / 2
+  A  <- spec.taper(rep(1, N0), taper) *
+        outer(seq_len(N0) - 1, J - 1, function(t, f) exp(-2i * pi * t * f / N))
+  # detrend is the symmetric projection D = I - 11'/N0 - tt'/sum(tt^2); apply to A
+  A  <- A - matrix(colMeans(A), N0, ncol(A), byrow = TRUE) -
+        outer(tt, colSums(A * tt)) / sum(tt^2)
+  list(B = cbind(Re(A), Im(A)), W = W, nJ = length(J))
 }
 
 # get spectral power for each window in a rolling window approach over a coverage vector
@@ -65,23 +93,23 @@ get_rolling_psd_df <- function(cov,
   freqs <- freqs[keep]
 
   # Power spectrum of every rolling window (windows: cov[s : s+width-1] for
-  # s = 1, 1+stepSize, ...). Was zoo::rollapply(..., by = stepSize); over a whole
-  # chromosome that piled up ~20 GB of transient spec.pgram garbage before R's GC
-  # swept it - millions of calls with no breathing room. Same windows, computed
-  # in blocks with a gc() between them, keeps the peak near 1 GB. Verified
-  # byte-identical to rollapply (scratchpad/).
+  # s = 1, 1+stepSize, ...). Was one spec.pgram() call per window (millions per
+  # chromosome, the whole runtime of this process); now the closed form from
+  # psd_projection() is applied to blocks of windows with one matrix product.
+  # Same values as spec.pgram up to floating-point rounding (~1e-13 relative).
   win_starts <- seq.int(1L, length(cov) - width + 1L, by = stepSize)
-  nkeep <- length(keep)
-  specs <- matrix(0, nrow = length(win_starts), ncol = nkeep)
-  block <- 50000L
+  proj <- psd_projection(width, keep)
+  re <- seq_len(proj$nJ); im <- proj$nJ + re
+  offs <- 0:(width - 1L)
+  specs <- matrix(0, nrow = length(win_starts), ncol = length(keep))
+  block <- 20000L
   for (b0 in seq.int(1L, length(win_starts), by = block)) {
     ix <- b0:min(b0 + block - 1L, length(win_starts))
-    chunk <- vapply(win_starts[ix],
-                    function(s) getspec(cov[s:(s + width - 1L)], keep),
-                    numeric(nkeep))
-    specs[ix, ] <- if (nkeep == 1L) chunk else t(chunk)
-    gc(FALSE)
+    X <- matrix(cov[outer(win_starts[ix], offs, "+")], nrow = length(ix))
+    Y <- X %*% proj$B
+    specs[ix, ] <- (Y[, re, drop = FALSE]^2 + Y[, im, drop = FALSE]^2) %*% proj$W
   }
+  rm(X, Y)
   colnames(specs) <- freqs
 
   # Create Dataframe.
@@ -264,9 +292,9 @@ inFiles %>%
         .options = furrr_options(
           seed = TRUE,
           chunk_size = 1,
-          globals = c("psd_one_chr", "get_rolling_psd_df", "getspec"),
+          globals = c("psd_one_chr", "get_rolling_psd_df", "psd_projection"),
           packages = c("rtracklayer", "GenomicRanges", "IRanges",
-                       "GenomeInfoDb", "S4Vectors", "zoo",
+                       "GenomeInfoDb", "S4Vectors",
                        "tibble", "dplyr", "tidyr"))) %>%
       bind_rows(.id = "seqnames")
 
