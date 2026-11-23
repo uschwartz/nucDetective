@@ -1,5 +1,7 @@
 # nucDetective
 
+**Version 2.0**
+
 ## Introduction
 nucDetective is a two step automated pipeline for the investigation of nucleosome positions and nucleosome dynamics among MNase-Seq data generated using varying conditions.
 The pipeline contains two main workflows:
@@ -98,8 +100,9 @@ Once `Profiler` is completed the `Inspector` can be instructed to analyze nucleo
       ~96 GB for a single nucleosome-calling task and ~160 GB for the regularity
       analysis, and retries with more on an out-of-memory kill. A machine with
       **256 GB** is the practical minimum for human (HeLa/MCF7); 384–512 GB runs
-      comfortably. Lower the ceiling on a smaller box with `--max_memory` /
-      `--max_cpus` (see below) — tasks are then clamped to it (and may still OOM).
+      comfortably. The default ceiling is 80 GB / 20 CPUs, so raise it with
+      `--max_memory` / `--max_cpus` (see below) for large genomes; tasks requesting
+      more are clamped to the ceiling (and may then OOM).
 * Disk: on a large genome the intermediate BAM/wig files in the work directory reach
   tens of GB per sample. Budget generously and clean the work directory after a
   successful run (`nextflow clean -f`).
@@ -114,8 +117,8 @@ set from three parameters, no config edit needed:
 
 | flag | default | effect |
 |------|---------|--------|
-| `--max_memory` | `450.GB` | upper bound for any single task |
-| `--max_cpus`   | `64`     | upper bound for any single task |
+| `--max_memory` | `80.GB`  | upper bound for any single task |
+| `--max_cpus`   | `20`     | upper bound for any single task |
 | `--max_time`   | `240.h`  | upper bound for any single task |
 
 Profiles: `-profile lowmem` (30 GB / 6 CPU ceiling, for laptop tests; `--max_cpus` /
