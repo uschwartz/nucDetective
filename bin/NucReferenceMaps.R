@@ -4,6 +4,13 @@ args <-  commandArgs(TRUE)
 library(rtracklayer)
 library(GenomicRanges)
 
+# First argument (an integer) = minimum number of samples a reference nucleosome
+# must be top20 in to be kept (consensus filter, see below and reference_map.nf).
+# If the first arg is not an integer, fall back to the old union behaviour
+# (min_support = 1), so calling the script the old way still works.
+min_support <- suppressWarnings(as.integer(args[1]))
+if (is.na(min_support)) { min_support <- 1L } else { args <- args[-1] }
+
 # load bed files
 bed.list<-GRangesList()
 for(i in args){
@@ -77,6 +84,21 @@ ovrlps <- which(OvrlpCount > 1)
 if(length(ovrlps) > 0){
   merged <- reduce(nucRef[ovrlps])
   newquery <- c(nucRef[-ovrlps], merged)
+}
+
+# --- consensus filter -------------------------------------------------------
+# Standard nucDetective takes the UNION of every sample's top20 nucleosomes as the
+# reference. For many samples across conditions on a large genome that union is
+# ~every nucleosome (>10M), which makes the downstream scoring / dynamics steps
+# intractable. Keep only reference nucleosomes that overlap (>= 100 bp) a top20
+# nucleosome in at least `min_support` of the input samples.
+if(min_support > 1L){
+  support <- Reduce(`+`, lapply(as.list(bed.list), function(gr)
+                    as.integer(countOverlaps(newquery, gr, minoverlap = 100) > 0L)))
+  keep <- support >= min_support
+  message(sprintf("consensus filter: kept %d / %d reference nucleosomes (top20 in >= %d of %d samples)",
+                  sum(keep), length(keep), min_support, length(bed.list)))
+  newquery <- newquery[keep]
 }
 
 # write final result to bed file

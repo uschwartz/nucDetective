@@ -1,15 +1,11 @@
 process sieve{
 container 'uschwartz/deeptools_samtools:v1.0'
 
-if(params.blacklist && params.container_engine == 'docker'){
-    containerOptions "-v \$(dirname ${params.blacklist}):\$(dirname ${params.blacklist})"
-}
-if(params.blacklist && params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.blacklist}):\$(dirname ${params.blacklist})"
-}
+  // bind-mount the blacklist directory into the container (docker: -v, singularity: -B)
+  containerOptions params.blacklist ? "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.blacklist}):\$(dirname ${params.blacklist})" : ''
 
   label 'big'
-  memory { params.genomeSize > 200000000 ? '15.GB' : '7.GB'}
+  // resources: see process withName:'sieve' in nextflow.config
   publishDir "${params.outDir}/QC/07_ALIGNMENT_FILTERING/", mode: 'copy', pattern: "*_FiltLog.txt"
   publishDir "${params.outDir}/RUN/00_ALIGNMENT/monoNuc", mode: 'copy', pattern: "*_monoNuc.bam", enabled:params.publishBamFlt
 

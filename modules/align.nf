@@ -1,15 +1,10 @@
 process alignment{
 
-  if (params.container_engine == 'docker') {
-    containerOptions "-v \$(dirname ${params.genomeIdx}):\$(dirname ${params.genomeIdx})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.genomeIdx}):\$(dirname ${params.genomeIdx})"
-  }
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.genomeIdx}):\$(dirname ${params.genomeIdx})"
 
 
-  cpus = (Runtime.runtime.availableProcessors() - (Math.round((Runtime.runtime.availableProcessors()*20)/100)))
-  memory = { 2.GB * task.cpus }
+  // resources (cpus/memory): see process withName:'alignment' in nextflow.config
   publishDir "${params.outDir}/QC/04_ALIGNMENT", mode: 'copy', pattern: "*_alignment_stats.txt"
   publishDir "${params.outDir}/RUN/00_ALIGNMENT", mode: 'copy', pattern: "*_aligned.bam", enabled:params.publishBam
 

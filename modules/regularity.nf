@@ -1,15 +1,10 @@
 process regularity{
   
-  if(params.container_engine == 'docker'){
-    containerOptions "-v \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }  
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
 
     container 'leoschmutterer/regularity:v1.1'
-    cpus = 4
-    memory = { 15.GB * task.cpus }
+    // resources: see process withName:'regularity|regularity_reference' in nextflow.config
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "Irregular*"
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
     publishDir "${params.outDir}/RUN/07_REGULARITY/All_regions/", mode: 'copy', pattern: "*.tsv"
@@ -29,21 +24,16 @@ process regularity{
     
     script:
   """
-  regularity.R $sampleID $bw $params.chrSizes $params.avgNRL
+  REGULARITY_WORKERS=$task.cpus regularity.R $sampleID $bw $params.chrSizes $params.avgNRL
   """
 }
 
 process regularity_reference{
-  if(params.container_engine == 'docker'){
-    containerOptions "-v \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }
-  if(params.container_engine == 'singularity'){
-    containerOptions "-B \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  }  
+  // bind-mount the input directory into the container (docker: -v, singularity: -B)
+  containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
 
     container 'leoschmutterer/regularity:v1.1'
-    cpus = 4
-    memory = { 15.GB * task.cpus }
+    // resources: see process withName:'regularity|regularity_reference' in nextflow.config
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "Irregular*"
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/RollingWindows/", mode: 'copy', pattern: "*RollingWindow.bw"
     publishDir "${params.outDir}/RUN/07_REGULARITY/Reference_pos/", mode: 'copy', pattern: "*.tsv"
@@ -64,6 +54,6 @@ process regularity_reference{
     
     script:
   """
-  regularity.R $sampleID $bw $params.chrSizes $reference_positions $params.avgNRL
+  REGULARITY_WORKERS=$task.cpus regularity.R $sampleID $bw $params.chrSizes $reference_positions $params.avgNRL
   """
 }

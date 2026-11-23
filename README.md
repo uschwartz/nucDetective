@@ -56,7 +56,7 @@ Given paired-end sequencing data in fastq format, this pipeline will first run `
     4. NRL plots
 
 ### Inspector
-Once `Profiler` is completed the `Inpector` can be instructed to analyze nucleosome dynamics.
+Once `Profiler` is completed the `Inspector` can be instructed to analyze nucleosome dynamics.
 
 <p align="center">
                     Workflow Inspector
@@ -71,7 +71,7 @@ Once `Profiler` is completed the `Inpector` can be instructed to analyze nucleos
         3. Peak scoring by [deepTools](https://github.com/deeptools/deepTools/tree/master) `multiBigwigSummary`
         4. Correlation plot by [deepTools](https://github.com/deeptools/deepTools/tree/master) `plotCorrelation`
         5. PCA plot by [deepTools](https://github.com/deeptools/deepTools/tree/master) `plotPCA`
-        6. Analysis of nucleosome occuancy
+        6. Analysis of nucleosome occupancy
         7. Defining regions of low regularity between samples
         8. Define nucleosome shifts between samples
         9. Define fuzzy nucleosomes
@@ -91,13 +91,58 @@ Once `Profiler` is completed the `Inpector` can be instructed to analyze nucleos
 
 ### System requirements
 
-* A minimum memory (RAM) of 48 GB for Genomes larger than 200 Mbp and 16 Gb for smaller Genomes.
-* A cpu with a least 4 cores.
+* CPU with at least 4 cores.
+* RAM, depending on the effective genome size:
+    * **≤ 200 Mbp** (e.g. yeast, *Plasmodium*): 16–32 GB.
+    * **> 200 Mbp** (e.g. *Drosophila*, mouse, human): the pipeline requests up to
+      ~96 GB for a single nucleosome-calling task and ~160 GB for the regularity
+      analysis, and retries with more on an out-of-memory kill. A machine with
+      **256 GB** is the practical minimum for human (HeLa/MCF7); 384–512 GB runs
+      comfortably. Lower the ceiling on a smaller box with `--max_memory` /
+      `--max_cpus` (see below) — tasks are then clamped to it (and may still OOM).
+* Disk: on a large genome the intermediate BAM/wig files in the work directory reach
+  tens of GB per sample. Budget generously and clean the work directory after a
+  successful run (`nextflow clean -f`).
+
+#### Tuning resources
+
+Per-task memory and CPU requests live in `nextflow.config` (`process { withName: … }`).
+They scale automatically with `--genomeSize` (the `> 200000000` branch) and grow with
+each retry after an OOM. Every request, including retries, is capped by Nextflow's
+[`resourceLimits`](https://docs.seqera.io/nextflow/reference/process/directives) directive, which is
+set from three parameters, no config edit needed:
+
+| flag | default | effect |
+|------|---------|--------|
+| `--max_memory` | `450.GB` | upper bound for any single task |
+| `--max_cpus`   | `64`     | upper bound for any single task |
+| `--max_time`   | `240.h`  | upper bound for any single task |
+
+Profiles: `-profile lowmem` (30 GB / 6 CPU ceiling, for laptop tests; `--max_cpus` /
+`--max_memory` given on the command line still take precedence),
+`-profile scratch` (run tasks in node-local scratch, stage results back — use when
+`-w` is on a slow or network disk). Combine with commas.
+
+#### Notes for large / HPC runs
+
+* Launch Nextflow from a directory on a POSIX file system that supports **file locks**
+  (most network mounts — SMB/CIFS, some NFS — do not, and Nextflow aborts immediately
+  with *"needs … a shared file system that supports file locks"*). Point `-w` at fast
+  local storage.
+* DANPOS `dpos` on a 2.9 Gb genome is inherently heavy (single-threaded, genome-wide
+  base-resolution arrays): expect ~60–120 GB peak and several hours per sample even
+  with enough RAM.
 
 ### Other requirements
-* [`Docker`](https://www.docker.com/) or [`Singularity`](https://github.com/sylabs/singularity/) and [`nextflow`](https://www.nextflow.io/) are required to run the nucDetective pipeline. Additional software used in the pipeline is packaged in Docker containers and is automatically downloaded during the first execution of the pipeline.
-* `Docker` is the default profile. Use `--container_engine singularity` to run it on `Singularity`
-* The pipeline is compatible with all computational infrastructures. Executing the pipeline on cloud or HPC systems may require to adapt the [`nextflow.config`](https://www.nextflow.io/docs/latest/basic.html).
+* [`Docker`](https://www.docker.com/) or [`Singularity`](https://github.com/sylabs/singularity/) and [`Nextflow`](https://docs.seqera.io/nextflow/) are required to run the nucDetective pipeline. Additional software used in the pipeline is packaged in Docker containers and is automatically downloaded during the first execution of the pipeline.
+* Nextflow **24.10 or later** is required. The pipeline uses the Nextflow
+  [strict syntax](https://docs.seqera.io/nextflow/strict-syntax), which is the default since
+  Nextflow 26.04, so no `NXF_SYNTAX_PARSER` setting is needed. It has been tested with
+  Nextflow 25.02 and 26.04.
+* `Docker` is the default container engine. Use `--container_engine singularity` to run it on `Singularity`.
+  On large genomes, `--scratch_dir <dir>` binds a host directory as the container's `/tmp`
+  if the container's `/tmp` fills up.
+* The pipeline is compatible with all computational infrastructures. Executing the pipeline on cloud or HPC systems may require to adapt the [`nextflow.config`](https://docs.seqera.io/nextflow/config).
 * The pipeline requires paired-end sequencing data
 * Bowtie2 index of reference genome, reference genome in fasta format and the length of the mappable genome.
 
@@ -113,11 +158,9 @@ nextflow run <path2nucDetective>/nucDetective/ --test
 
 nextflow run <path2nucDetective>/nucDetective/ --analysis 'inspector' --test
 ```
-Since nextflow version 26.04.0 strict syntax is enabled by default. To run the pipeline with nextflow version 26 or higher use
-
-```bash
-NXF_SYNTAX_PARSER=v1 nextflow run <path2nucDetective>/nucDetective/ --test
-```
+The results are written to `Profiler_test/` and `Inspector_test/` in the directory from which
+Nextflow is launched. The `Inspector` test uses the nucleosome profiles shipped in `toyData/wig`,
+so it does not depend on the `Profiler` test run.
 
 ## Usage
 
@@ -125,6 +168,7 @@ NXF_SYNTAX_PARSER=v1 nextflow run <path2nucDetective>/nucDetective/ --test
 ```bash
 nextflow run <path2nucDetective>/nucDetective/ --help
 ```
+Lists all parameters with their current defaults, the resource limits and the available profiles.
 
 ### Testing and Tutorial
 To familiarise yourself with the use and capabilities of the pipeline, it is recommended that you try out the analysis workflows in the examples folder, which start from scratch and show all the commands through to the detection of the most dynamic nucleosomes.
@@ -132,7 +176,7 @@ To familiarise yourself with the use and capabilities of the pipeline, it is rec
 ### Workflows
 The `Profiler` workflow is required to run first. Then `Inspector` can be run with the profiles generated by `Profiler`. We recommend to investigate "QC" output before running `Inspector` to assess data quality.
 &nbsp;
-Files will be sorted alphabetically, we therfore recommend naming files accordingly.
+Files will be sorted alphabetically, we therefore recommend naming files accordingly.
 
 * Example:
     01 to 20 rather than 1 to 20
@@ -162,7 +206,10 @@ name1,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name1_profile.wig,Reference,cond1
 name2,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name2_profile.wig,Norm,cond2
 name3,/Profiler/RUN/01_NUCLEOSOME_PROFILE/wig/name3_profile.wig,Norm,cond3
 ```
-Each row represents a normalized nucleosome profile file.
+Each row represents a nucleosome profile file. Exactly one sample is marked `Reference` in
+the `normalize` column; it is used as the target for quantile normalisation.
+The `Condition` column (`condition` is accepted as well) determines the order of the samples
+when the nucleosome reference maps are built.
 
 **Execute:**
 
@@ -177,7 +224,7 @@ nextflow run /nucDetective/ \
 --genomeSize <GENOMESIZE> \
 --minLen 75 --maxLen 175 \
 --blacklist '/blacklist.bed' \
---TSS '/Annotationfile.bed' \
+--TSS '/Annotationfile.gtf' \
 -w ./work_profiler
 ```
 Required options are:  `--csvInput`, `--outDir`, `--genomeIdx`, `--genomeSize`.   
@@ -191,10 +238,36 @@ nextflow run /nucDetective/ \
 --outDir '<OUTDIR>' \
 --chrSizes '/chrom_Sizes.txt' \
 --genomeSize <GENOMESIZE> \
---TSS '/Annotationfile.bed' \
+--TSS '/Annotationfile.gtf' \
 -w ./work_inspector
 ```
 Required options are:  `--analysis inspector`, `--csvInput`, `--outDir`, `--chrSizes`, `--genomeSize`.    
+
+#### About `--genomeSize`
+
+`--genomeSize` has a different role in each workflow:
+
+* **Profiler: it sets the height of the nucleosome profiles.** The value is passed to
+  `danpos.py dpos -c`, which is *"the count of reads to be normalized to"*. Every
+  profile is scaled to this read count, so all values in the profile wig/bigWig files
+  are proportional to `--genomeSize`.
+* **Inspector: resources only.** Here it only selects the memory/CPU branch for
+  genomes > 200 Mbp (see [Tuning resources](#tuning-resources)). It does not change
+  any result.
+
+This matters because the Inspector calls nucleosomes on these profiles with a fixed
+absolute cutoff (`danpos.py dpos --height 25`). A different `--genomeSize` in the
+Profiler therefore changes **which nucleosomes are called**, not only the scale of the
+tracks. With `--normalize_profiles`, all samples are quantile-normalized to the
+reference sample, so its scale carries over to every sample.
+
+Recommendations:
+
+* Set `--genomeSize` to the effective (mappable) genome size of your organism.
+* Use the **same value for every Profiler run** whose wig files go into one Inspector
+  run. Mixing values gives profiles on different scales.
+* If you change `--genomeSize`, re-run the Profiler. Changing it only in the
+  Inspector has no effect on the results.
 
 ## Contact
 

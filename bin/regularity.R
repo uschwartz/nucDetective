@@ -8,7 +8,6 @@
 
 library(tidyverse)
 library(plyranges)
-suppressMessages(library(zoo))
 library(furrr)
 
 args <- commandArgs(TRUE)
@@ -19,10 +18,42 @@ args <- args[-length(args)]
 
 # Functions ---------------------------------------------------------------
 
-# Calculate spectral power density and return the spectra
-getspec <- function(x) {
-  out <- spec.pgram(x, spans = c(3,3), pad = 1, plot = F)
-  return(out$spec)
+# Closed form of spec.pgram(x, spans = c(3,3), pad = 1, plot = F)$spec[keep] for
+# a window of length `width` (defaults taper = 0.1, detrend = TRUE, fast = TRUE).
+# Detrend, taper, zero-padding and the DFT are all linear in the window, so the
+# raw periodogram at frequency index f is |b_f . x|^2 for a fixed complex vector
+# b_f; the modified-Daniell smoothing (incl. spec.pgram's DC replacement and the
+# circular wrap) is a fixed linear combination of a few such terms. Returns
+#   B : width x 2*nJ real matrix (Re | Im of the needed b_f)
+#   W : nJ x length(keep) smoothing weights (already divided by N0 and u2)
+# so that spec = ((X %*% B)[, Re]^2 + (X %*% B)[, Im]^2) %*% W for a matrix X
+# whose rows are windows. Matches spec.pgram to ~1e-13 relative (scratchpad/).
+psd_projection <- function(width, keep, spans = c(3,3), taper = 0.1, pad = 1) {
+  N0 <- width
+  N  <- nextn(N0 * (1 + pad))
+  k  <- kernel("modified.daniell", spans %/% 2)
+  m  <- k$m
+  kw <- k[-m:m]
+  W  <- matrix(0, N, length(keep))
+  for (c in seq_along(keep)) {
+    p <- keep[c] + 1L                     # spec index i is pgram index i + 1
+    for (l in -m:m) {
+      q <- ((p - l - 1L) %% N) + 1L       # circular kernapply
+      if (q == 1L) {                      # pgram[1] := 0.5 * (pgram[2] + pgram[N])
+        W[2L, c] <- W[2L, c] + 0.5 * kw[l + m + 1L]
+        W[N,  c] <- W[N,  c] + 0.5 * kw[l + m + 1L]
+      } else W[q, c] <- W[q, c] + kw[l + m + 1L]
+    }
+  }
+  J  <- which(rowSums(W != 0) > 0)
+  W  <- W[J, , drop = FALSE] / (N0 * (1 - (5/8) * taper * 2))
+  tt <- seq_len(N0) - (N0 + 1) / 2
+  A  <- spec.taper(rep(1, N0), taper) *
+        outer(seq_len(N0) - 1, J - 1, function(t, f) exp(-2i * pi * t * f / N))
+  # detrend is the symmetric projection D = I - 11'/N0 - tt'/sum(tt^2); apply to A
+  A  <- A - matrix(colMeans(A), N0, ncol(A), byrow = TRUE) -
+        outer(tt, colSums(A * tt)) / sum(tt^2)
+  list(B = cbind(Re(A), Im(A)), W = W, nJ = length(J))
 }
 
 # get spectral power for each window in a rolling window approach over a coverage vector
@@ -31,41 +62,76 @@ getspec <- function(x) {
 get_rolling_psd_df <- function(cov,
                                width = 513,
                                stepSize = 100,
-                               lower_NRL_filter = 50) {
+                               lower_NRL_filter = 50,
+                               avgNRL = NULL) {
   start = 1
   end <- length(cov)
-  
-  # get power spectrum for each (rolling) window 
-  specs <- (rollapply(cov[start:end],
-                      width = width,
-                      getspec,
-                      by = stepSize))
-  
-  # Get frequencies 
+
+  # Get frequencies (identical for every window of this width)
   pgram <- spec.pgram(cov[1:width],
                       spans = c(3,3),
                       pad = 1,
                       plot = F)
   freqs <- pgram$freq
-  
+
+  # Only frequencies whose NRL (= 1/freq) exceeds the filter are ever kept downstream
+  # (filter(NRL > lower_NRL_filter)). Restrict the spectrum to those *before* the
+  # rolling apply / pivot, so the intermediate is ~25x smaller for a large genome
+  # instead of being built in full and then discarded. Rows returned are identical.
+  keep <- which((1 / as.numeric(as.character(freqs))) > lower_NRL_filter)
+
+  # When avgNRL is supplied, restrict further to the frequency/frequencies whose
+  # rounded NRL is nearest avgNRL - that (and only that) is what get_psd_avgNRL
+  # keeps downstream, and the frequency grid is identical for every window, so
+  # selecting here is equivalent. Doing it BEFORE the rolling apply / pivot
+  # collapses the per-chromosome intermediate from ~20 freqs/window to 1, which
+  # is the memory pole on a large genome.
+  if (!is.null(avgNRL)) {
+    nrl_r <- round(1 / as.numeric(as.character(freqs))[keep])
+    keep  <- keep[abs(nrl_r - avgNRL) == min(abs(nrl_r - avgNRL))]
+  }
+  freqs <- freqs[keep]
+
+  # Power spectrum of every rolling window (windows: cov[s : s+width-1] for
+  # s = 1, 1+stepSize, ...). Was one spec.pgram() call per window (millions per
+  # chromosome, the whole runtime of this process); now the closed form from
+  # psd_projection() is applied to blocks of windows with one matrix product.
+  # Same values as spec.pgram up to floating-point rounding (~1e-13 relative).
+  win_starts <- seq.int(1L, length(cov) - width + 1L, by = stepSize)
+  proj <- psd_projection(width, keep)
+  re <- seq_len(proj$nJ); im <- proj$nJ + re
+  offs <- 0:(width - 1L)
+  specs <- matrix(0, nrow = length(win_starts), ncol = length(keep))
+  block <- 20000L
+  for (b0 in seq.int(1L, length(win_starts), by = block)) {
+    ix <- b0:min(b0 + block - 1L, length(win_starts))
+    X <- matrix(cov[outer(win_starts[ix], offs, "+")], nrow = length(ix))
+    Y <- X %*% proj$B
+    specs[ix, ] <- (Y[, re, drop = FALSE]^2 + Y[, im, drop = FALSE]^2) %*% proj$W
+  }
+  rm(X, Y)
   colnames(specs) <- freqs
-  
-  # Create Dataframe
-  spec_df <- specs %>% 
-    as_tibble() %>% 
+
+  # Create Dataframe.
+  # start/end are taken from nrow(specs): windows run to the last full window,
+  # which for some sequence lengths is one more than the old
+  # seq(from = 1, to = length(cov) - width, by = stepSize) produced - that
+  # mismatch threw a size error in mutate(). Identical values otherwise.
+  spec_df <- specs %>%
+    as_tibble() %>%
     mutate(start = seq(from = 1,
-                       to = length(cov) - width,
-                       by = stepSize),
+                       by = stepSize,
+                       length.out = nrow(specs)),
            end = seq(from = width - 1,
-                     to = length(cov),
-                     by = stepSize)) %>% 
-    pivot_longer(!c("start","end")) %>% 
+                     by = stepSize,
+                     length.out = nrow(specs))) %>%
+    pivot_longer(!c("start","end")) %>%
     mutate(freq = as.numeric(name),
            NRL = 1/as.numeric(name),
            start = start + (width - 1 - stepSize) / 2,
-           end = end - (width - 1 - stepSize) / 2) %>% 
-    select(-name) %>% 
-    filter(NRL > lower_NRL_filter) # important to lower df-size 
+           end = end - (width - 1 - stepSize) / 2) %>%
+    select(-name) %>%
+    filter(NRL > lower_NRL_filter) # no-op after the restriction above; kept for clarity
   return(spec_df)
 }
 
@@ -90,8 +156,11 @@ get_psd_avgNRL <- function(x, avgNRL, outPath) {
   # Correct for different seqlevels
   seqlengths(psd_gr) <- chrSizes$size[match(seqlevels(psd_gr), chrSizes$seqnames)]
   write_bigwig(psd_gr, file = paste0("PSD_avgNRL_",avgNRL,"_", ctp, ".bw"))
-  
-  return(psd_gr %>% as_tibble())
+
+  # only these four columns are used downstream (psd_log10_gr groups by
+  # seqnames/start/end and aggregates value); returning the full ~9-column tibble
+  # for every sample makes the stacked psd_df twice as large for no reason.
+  return(psd_gr %>% as_tibble() %>% dplyr::select(seqnames, start, end, value))
 }
 
 
@@ -173,56 +242,96 @@ chrSizes <- read.table(grep(".txt",args, value = T))
 colnames(chrSizes) <- c("seqnames","size")
 
 
-## For parallelisation
+## PSD per chromosome, run in parallel across cores. Was plan(multicore,
+## workers = 4) + future_map; the forked workers died inside the container
+## ("forked worker no longer alive" - Docker's small default /dev/shm).
+## plan(multisession) uses PSOCK workers (sockets, no fork, no /dev/shm), and
+## each worker reads only its own chromosome from the bigwig so just one
+## chromosome-sized vector crosses to it. Worker count from REGULARITY_WORKERS
+## (the module sets it to task.cpus); the fallback is deliberately small so a
+## bare manual run does not spawn one heavy worker per host core. spec.pgram
+## uses no RNG, so the result is identical to sequential (verified in scratchpad/).
+workers <- suppressWarnings(as.integer(Sys.getenv("REGULARITY_WORKERS", "")))
+if (is.na(workers) || workers < 1L) workers <- min(4L, max(1L, future::availableCores()))
+plan(multisession, workers = workers)
 
-plan(multicore, workers = 4)
+psd_one_chr <- function(chr, bwFile, chrLenAll, avgNRL) {
+  chrLen <- chrLenAll[[chr]]
+  gr <- rtracklayer::import.bw(
+          bwFile,
+          which = GenomicRanges::GRanges(chr, IRanges::IRanges(1, chrLen)))
+  if (length(gr) == 0L) {
+    cc <- S4Vectors::Rle(0, chrLen)
+  } else {
+    cc <- GenomicRanges::coverage(gr, weight = gr$score)[[chr]]
+  }
+  get_rolling_psd_df(as.numeric(cc), width = 513, stepSize = 100, avgNRL = avgNRL)
+}
 
 # Get PSD for each timepoint
 inFiles %>%
-  setNames(fileNames) %>% 
+  setNames(fileNames) %>%
   map(function(x) {
-    
+
     print(x)
-    
-    # Get coverage vector
-    cov_vec <- read_bigwig(x) %>% 
-      coverage(weight = .$score) %>%
-      lapply(as.numeric)
-    
-    # Get PSD over a rolling window
-    y <- cov_vec %>% 
-      future_map(get_rolling_psd_df,
-                 width = 513,
-                 stepSize = 100) %>% 
+
+    chrLen <- GenomeInfoDb::seqlengths(seqinfo(rtracklayer::BigWigFile(x)))
+
+    # data (bwFile, chrLenAll, avgNRL) is forwarded to every call and exported
+    # automatically; only the free helper functions need listing in globals.
+    # chunk_size = 1: one future per chromosome. Without it furrr statically
+    # splits the chromosomes into one block per worker up front - and since the
+    # bigwig lists the big chromosomes first, one worker gets chr1 + chr10..16
+    # (~40 % of the work) and runs them serially while the rest idle. One future
+    # per chromosome lets a free worker pick up the next chromosome immediately.
+    y <- names(chrLen) %>%
+      set_names() %>%
+      future_map(
+        psd_one_chr,
+        bwFile = x, chrLenAll = chrLen, avgNRL = avgNRL,
+        .options = furrr_options(
+          seed = TRUE,
+          chunk_size = 1,
+          globals = c("psd_one_chr", "get_rolling_psd_df", "psd_projection"),
+          packages = c("rtracklayer", "GenomicRanges", "IRanges",
+                       "GenomeInfoDb", "S4Vectors",
+                       "tibble", "dplyr", "tidyr"))) %>%
       bind_rows(.id = "seqnames")
-    
+
     print("done...saving")
-    
+
     # Save Intermediate Files
     name <- x %>% tools::file_path_sans_ext() %>% basename()
-    saveRDS(object = y, file = paste0("PSD_RollingWindow_",name ,".rds"))
+    saveRDS(object = y, file = paste0("PSD_RollingWindow_", name, ".rds"))
   })
+
+# The PSOCK workers are done with; shut them down so their ~1-2 GB each of loaded
+# packages is not sitting idle through the serial aggregation below (that plus the
+# grouped summarise plus averagePerBin's coverage was enough to OOM a 72 GB run).
+plan(sequential)
 
 # Extract track nearest to observed/expected average NRL  -----------------
 
 
 psd_files <- list.files(pattern = "*.rds", full.names = T)
 
-# get spectral power corresponding to the average expected NRL for each sample 
+# get spectral power corresponding to the average expected NRL for each sample
 psd_df <- psd_files %>%
   map_df(get_psd_avgNRL,
          avgNRL = avgNRL,
          outPath = getwd(),
-         .id = "sample") 
+         .id = "sample")
 
 # calculate variance and mean from 10xLog (like in dB for sound)  --------
-psd_log10_gr <- psd_df %>% 
-  group_by(seqnames, start, end) %>% 
-  mutate(value_log = log(value + 1) * 10) %>% 
-  summarise(psd_var = var(value_log),
+# log(value+1)*10 is evaluated inside summarise() rather than added as a grouped
+# mutate() column first - same numbers, but avoids materialising a 124 M-row
+# value_log column (and the grouped-mutate pass) on a human-genome run.
+psd_log10_gr <- psd_df %>%
+  group_by(seqnames, start, end) %>%
+  summarise(psd_var  = var(log(value + 1) * 10),
             psd_mean = mean(value),
-            psd_sd = sd(value_log)) %>% 
-  ungroup() 
+            psd_sd   = sd(log(value + 1) * 10),
+            .groups  = "drop")
 
 # Output of variance track
 var_out <- psd_log10_gr %>% 

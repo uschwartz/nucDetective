@@ -1,5 +1,15 @@
 #!/usr/bin/env Rscript
 library(rtracklayer)
+library(parallel)
+
+# Detect nucleosome shifts: for every reference nucleosome and every sample, fit a
+# loess curve to the bigWig signal within the nucleosome and take the position of
+# the highest local maximum; nucleosomes whose summit position varies most between
+# samples are reported.
+#
+# Speed-up (results unchanged): each bigWig is read once for all reference
+# nucleosomes instead of once per nucleosome, and the per-nucleosome loess fits run
+# in parallel on SHIFT_WORKERS cores (set by the Nextflow module from task.cpus).
 
 # load reference nucleosomes top20
 nucRef<-import.bed("NucPosRef_top20.bed")
@@ -9,77 +19,75 @@ files.bw<-grep("bw",list.files(), value = T)
 #get name
 names.bw<-gsub("_qNorm.bw","",files.bw)
 
+workers <- suppressWarnings(as.integer(Sys.getenv("SHIFT_WORKERS", "1")))
+if (is.na(workers) || workers < 1) workers <- 1
 
-for (i in 1:length(nucRef)){
-    #i=1
-    #print(i)
-    
-    #select peak
-    queryRef<-nucRef[i]
-    
-    #get nuc occupancy values from bigwigs
-    
-    for(j in 1:length(names.bw)){
-        bw.vals<-import.bw(con=files.bw[j],
-                           which=queryRef)
-        # in case no signal at position available assign NA
-        if(!(length(bw.vals)>0)){
-            max.pos<-NA
-            max.score<-NA
-            
-            ##store results in vector
-            if(j==1) max.pos.v<-max.pos else max.pos.v<-c(max.pos.v,max.pos)
-            if(j==1) max.score.v<-max.score else max.score.v<-c(max.score.v,max.score)
-        } else { 
-            #############
-            #get midpoint of data
-            pos<-(end(bw.vals)+start(bw.vals))/2
-            lm<-loess(bw.vals$score~pos, span=0.6)
-            lm.fkt<-predict(lm)
-            
-            # get local maxima
-            maxima<-pos[which(diff(sign(diff(lm.fkt)))==-2)+1]
-            
-            #if more maxima available
-            if(length(maxima)>1){
-                maxima<-maxima[which.max(lm.fkt[which(diff(sign(diff(lm.fkt)))==-2)+1])]
-            }
-            
-            # in case no local maxima available assign NA
-            if(!(length(maxima)>0)){
-                max.pos<-NA
-                max.score<-NA
-                
-                ##store results in vector
-                if(j==1) max.pos.v<-max.pos else max.pos.v<-c(max.pos.v,max.pos)
-                if(j==1) max.score.v<-max.score else max.score.v<-c(max.score.v,max.score)
-            } else {
-                # nuc occupancy at summit
-                max.score<-max(lm.fkt[which(diff(sign(diff(lm.fkt)))==-2)+1])
-                
-                #select summit position
-                max.pos<-maxima
-                
-                ##store results in vector
-                if(j==1) max.pos.v<-max.pos else max.pos.v<-c(max.pos.v,max.pos)
-                if(j==1) max.score.v<-max.score else max.score.v<-c(max.score.v,max.score)
-            }
-            
+
+## read every bigWig once and assign its records to the reference nucleosomes.
+## import.bw(which = <one range>) clips records to that range, so the records
+## are clipped to their nucleosome here as well (identical input to the loess fits).
+signal_per_nuc <- lapply(files.bw, function(f){
+    sig  <- import.bw(con = f, which = nucRef)
+    hits <- findOverlaps(nucRef, sig)
+    q    <- queryHits(hits)
+    s    <- subjectHits(hits)
+    st   <- pmax(start(sig)[s], start(nucRef)[q])
+    en   <- pmin(end(sig)[s],   end(nucRef)[q])
+    list(pos   = split((en + st) / 2,  factor(q, levels = seq_along(nucRef))),
+         score = split(sig$score[s],   factor(q, levels = seq_along(nucRef))))
+})
+
+
+## summit position and score of one nucleosome in one sample (NA if none)
+get_summit <- function(pos, score){
+    # in case no signal at position available assign NA
+    if (!(length(score) > 0)) return(c(NA, NA))
+
+    lm<-loess(score~pos, span=0.6)
+    lm.fkt<-predict(lm)
+
+    # get local maxima
+    maxima<-pos[which(diff(sign(diff(lm.fkt)))==-2)+1]
+
+    #if more maxima available
+    if(length(maxima)>1){
+        maxima<-maxima[which.max(lm.fkt[which(diff(sign(diff(lm.fkt)))==-2)+1])]
+    }
+
+    # in case no local maxima available assign NA
+    if (!(length(maxima) > 0)) return(c(NA, NA))
+
+    # summit position and nuc occupancy at summit
+    c(maxima, max(lm.fkt[which(diff(sign(diff(lm.fkt)))==-2)+1]))
+}
+
+
+## all nucleosomes, in parallel blocks; each block returns a [nucs x samples x 2] array
+n_nuc  <- length(nucRef)
+blocks <- split(seq_len(n_nuc), cut(seq_len(n_nuc), breaks = min(n_nuc, workers * 4), labels = FALSE))
+
+summit_block <- function(idx){
+    res <- array(NA_real_, dim = c(length(idx), length(files.bw), 2))
+    for (k in seq_along(idx)) {
+        i <- idx[k]
+        for (j in seq_along(files.bw)) {
+            res[k, j, ] <- get_summit(signal_per_nuc[[j]]$pos[[i]],
+                                      signal_per_nuc[[j]]$score[[i]])
         }
     }
-    # assign timepoints to vectors
-    names(max.score.v)<-names.bw
-    names(max.pos.v)<-names.bw
-    
-    #store to matrix
-    if(i==1) {
-        max.pos.mx<-max.pos.v
-        max.score.mx<-max.score.v 
-    } else {
-        max.pos.mx<-rbind(max.pos.mx, max.pos.v)
-        max.score.mx<-rbind(max.score.mx, max.score.v)
-    }
-    
+    res
+}
+
+block_res <- mclapply(blocks, summit_block, mc.cores = workers, mc.preschedule = FALSE)
+failed <- vapply(block_res, inherits, logical(1), what = "try-error")
+if (any(failed)) stop("summit detection failed: ", as.character(block_res[[which(failed)[1]]]))
+
+# preallocated result matrices (rows = nucleosomes, columns = samples)
+max.pos.mx   <- matrix(NA_real_, nrow = n_nuc, ncol = length(files.bw), dimnames = list(NULL, names.bw))
+max.score.mx <- max.pos.mx
+for (b in seq_along(blocks)) {
+    max.pos.mx[blocks[[b]], ]   <- block_res[[b]][, , 1]
+    max.score.mx[blocks[[b]], ] <- block_res[[b]][, , 2]
 }
 
 
@@ -120,7 +128,7 @@ loess.line<-predict(lm)
 
 #calculate the first derivative
 loess.f1<-diff(loess.line)/diff(pos_rank)
-#define a slope cutoff of 1
+#define a slope cutoff of 3
 cutOff<-max(which(loess.f1<3))+1
 
 png("dynSHIFT_selection.png",

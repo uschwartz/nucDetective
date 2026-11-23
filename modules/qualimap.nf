@@ -2,7 +2,7 @@ process qualimap {
 
   container 'uschwartz/qualimap'
   label 'mid'
-  memory '16.GB'
+  // resources: see process withName:'qualimap' in nextflow.config
   publishDir "${params.outDir}/QC/05_QUALIMAP", mode: 'copy'
 
   input:
@@ -14,6 +14,6 @@ process qualimap {
 
   script:
   """
-  qualimap bamqc --java-mem-size=15G -bam $bam -c -outdir ${sampleID}
+  qualimap bamqc --java-mem-size=${task.memory.toGiga() - 2}G -bam $bam -c -outdir ${sampleID}
   """
 }

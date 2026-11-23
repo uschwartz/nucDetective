@@ -1,7 +1,7 @@
 process InsertSize_Histogram{
   container 'uschwartz/r_nucmacc:v3.1'
 
-  publishDir "${params.outDir}/QC/04_FRAGMENT_SIZES", mode: 'copy'
+  publishDir "${params.outDir}/QC/06_FRAGMENT_SIZES", mode: 'copy'
 
   input:
   file('*')
