@@ -10,6 +10,12 @@ library(parallel)
 # Speed-up (results unchanged): each bigWig is read once for all reference
 # nucleosomes instead of once per nucleosome, and the per-nucleosome loess fits run
 # in parallel on SHIFT_WORKERS cores (set by the Nextflow module from task.cpus).
+#
+# Memory: the per-nucleosome signal is kept as a few flat vectors per sample plus
+# an offset index, not as lists with one small vector per nucleosome. With ~10 M
+# reference nucleosomes such lists hold tens of millions of R objects, and every
+# forked worker's garbage collector writes to all of them, so each worker ended up
+# with its own copy of the whole signal (copy-on-write). Flat vectors stay shared.
 
 # load reference nucleosomes top20
 nucRef<-import.bed("NucPosRef_top20.bed")
@@ -23,9 +29,13 @@ workers <- suppressWarnings(as.integer(Sys.getenv("SHIFT_WORKERS", "1")))
 if (is.na(workers) || workers < 1) workers <- 1
 
 
+n_nuc <- length(nucRef)
+
 ## read every bigWig once and assign its records to the reference nucleosomes.
 ## import.bw(which = <one range>) clips records to that range, so the records
 ## are clipped to their nucleosome here as well (identical input to the loess fits).
+## findOverlaps() returns the hits sorted by nucleosome, so the records of
+## nucleosome i are pos/score[offset[i] + 1 .. offset[i + 1]], in subject order.
 signal_per_nuc <- lapply(files.bw, function(f){
     sig  <- import.bw(con = f, which = nucRef)
     hits <- findOverlaps(nucRef, sig)
@@ -33,8 +43,12 @@ signal_per_nuc <- lapply(files.bw, function(f){
     s    <- subjectHits(hits)
     st   <- pmax(start(sig)[s], start(nucRef)[q])
     en   <- pmin(end(sig)[s],   end(nucRef)[q])
-    list(pos   = split((en + st) / 2,  factor(q, levels = seq_along(nucRef))),
-         score = split(sig$score[s],   factor(q, levels = seq_along(nucRef))))
+    res  <- list(pos    = (en + st) / 2,
+                 score  = sig$score[s],
+                 offset = c(0, cumsum(as.numeric(tabulate(q, nbins = n_nuc)))))
+    rm(sig, hits, q, s, st, en)
+    gc(verbose = FALSE)
+    res
 })
 
 
@@ -63,7 +77,6 @@ get_summit <- function(pos, score){
 
 
 ## all nucleosomes, in parallel blocks; each block returns a [nucs x samples x 2] array
-n_nuc  <- length(nucRef)
 blocks <- split(seq_len(n_nuc), cut(seq_len(n_nuc), breaks = min(n_nuc, workers * 4), labels = FALSE))
 
 summit_block <- function(idx){
@@ -71,14 +84,25 @@ summit_block <- function(idx){
     for (k in seq_along(idx)) {
         i <- idx[k]
         for (j in seq_along(files.bw)) {
-            res[k, j, ] <- get_summit(signal_per_nuc[[j]]$pos[[i]],
-                                      signal_per_nuc[[j]]$score[[i]])
+            sp  <- signal_per_nuc[[j]]
+            rec <- seq.int(sp$offset[i] + 1, length.out = sp$offset[i + 1] - sp$offset[i])
+            res[k, j, ] <- get_summit(sp$pos[rec], sp$score[rec])
         }
     }
     res
 }
 
 block_res <- mclapply(blocks, summit_block, mc.cores = workers, mc.preschedule = FALSE)
+
+# a worker killed from outside (usually the OOM killer) leaves NULL, not a try-error.
+# Exit with 137 (SIGKILL) so that the pipeline's errorStrategy retries the task
+# with more memory, instead of failing later with an unrelated indexing error.
+killed <- vapply(block_res, is.null, logical(1))
+if (any(killed)) {
+    message("summit detection: ", sum(killed), " of ", length(killed),
+            " worker blocks returned no result (worker killed, most likely out of memory)")
+    quit(save = "no", status = 137)
+}
 failed <- vapply(block_res, inherits, logical(1), what = "try-error")
 if (any(failed)) stop("summit detection failed: ", as.character(block_res[[which(failed)[1]]]))
 
@@ -145,7 +169,10 @@ dev.off()
 
 
 ### select the peaks with highest variance
-idx_var<-var_pos>=var_pos_sort[cutOff]
+# nucleosomes without a summit in at least two samples have var NA: sort() drops
+# them from var_pos_sort, so drop them from the selection as well (else they end
+# up as all-NA rows in positions_varSHIFTS.bed)
+idx_var<-var_pos>=var_pos_sort[cutOff] & !is.na(var_pos)
 
 ############################################
 
