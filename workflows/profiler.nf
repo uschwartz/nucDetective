@@ -61,7 +61,7 @@ workflow profiler{
         //TSS_Profile_mono
 
         if(params.TSS){
-               tss_ch = channel.fromPath(params.TSS)
+               tss_ch = channel.of('TSS').combine(channel.fromPath(params.TSS))
         }
 
         if(params.TSS){

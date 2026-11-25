@@ -5,6 +5,8 @@ library(RColorBrewer)
 
 ######## DATA LOADING ###########
 args   <- commandArgs(TRUE)
+# optional 2nd argument: reference point label ("TSS" or "TES"), default "TSS"
+ref.point <- if (length(args) >= 2) args[2] else "TSS"
 
 
 heat.val<-read.delim(file = args[1])
@@ -55,8 +57,8 @@ for(i in 1:length(names)){
         plot(pos,
              heat.val[names[i],profile.index ],
              type="l",
-             xlab="distance from TSS", ylab = "MNase fragment density",
-             lwd=2, main="TSS profile", col=dark2[i], ylim=c(low,high))
+             xlab=paste("distance from", ref.point), ylab = "MNase fragment density",
+             lwd=2, main=paste(ref.point, "profile"), col=dark2[i], ylim=c(low,high))
     }
     else{
         lines(pos,
@@ -64,7 +66,7 @@ for(i in 1:length(names)){
               col=dark2[i],lwd=2)
     }
 }
-legend(1600,high+(high-low)/10, bty="n",
+legend(end.plot+100,high+(high-low)/10, bty="n",
        legend=names,
        col=dark2[1:length(names)], lwd=2,
        xpd=TRUE)

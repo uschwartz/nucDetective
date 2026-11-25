@@ -19,6 +19,8 @@ include{occupancy; shift} from '../modules/DynNucs'
 include{fuzziness} from '../modules/fuzziness'
 //get regularity
 include{regularity; regularity_reference} from '../modules/regularity'
+//distribution of nucleosome features along genes
+include{feature_profile; plot_feature_distribution} from '../modules/feature_distribution'
 
 
 workflow inspector{
@@ -68,9 +70,9 @@ workflow inspector{
           
           
 
-          //TSS_Profile
+          //TSS and TES (transcription end site) profiles
           if(params.TSS){
-          tss_ch = channel.fromPath(params.TSS)
+          tss_ch = channel.of('TSS','TES').combine(channel.fromPath(params.TSS))
         
           TSS_profile(bw_ch.collect(),tss_ch)
           TSS_profile_plot(TSS_profile.out)
@@ -109,4 +111,29 @@ workflow inspector{
                 regularity(wig_to_bw.out.map{id, _bw -> id}.toSortedList(), wig_to_bw.out.map{_id, bw -> bw}.toSortedList())       
           		}
           	}
+
+          //distribution of nucleosome features along genes
+          if(params.TSS){
+            reg_bed_ch = params.regularity_ref ? regularity_reference.out[1] : regularity.out[1]
+            feat_ch = reg_bed_ch.flatten()
+                .filter{ f -> f.name.endsWith('_reduced_filt.bed') }
+                .map{ f -> tuple('regularity_changes', f) }
+              .mix(occupancy.out.flatten()
+                .filter{ f -> f.name == 'positions_varOCC.bed' }
+                .map{ f -> tuple('occupancy', f) })
+              .mix(fuzziness.out.flatten()
+                .filter{ f -> f.name == 'positions_varFUZZ.bed' }
+                .map{ f -> tuple('fuzziness', f) })
+            if(params.detect_shift){
+              feat_ch = feat_ch.mix(shift.out.flatten()
+                .filter{ f -> f.name == 'positions_varSHIFTS.bed' }
+                .map{ f -> tuple('shifts', f) })
+            }
+            feature_profile(
+              feat_ch.toSortedList{ a, b -> a[0] <=> b[0] }
+                .map{ l -> tuple(l.collect{ it[0] }, l.collect{ it[1] }) },
+              channel.fromPath(params.TSS),
+              channel.fromPath(params.chrSizes))
+            plot_feature_distribution(feature_profile.out[0])
+          }
 }

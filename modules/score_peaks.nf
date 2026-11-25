@@ -5,7 +5,7 @@ process score_peaks{
   // so bind-mount its directory - same pattern as regularity.nf.
   // bind-mount the input directory into the container (docker: -v, singularity: -B)
   containerOptions "${params.container_engine == 'singularity' ? '-B' : '-v'} \$(dirname ${params.chrSizes}):\$(dirname ${params.chrSizes})"
-  publishDir "${params.outDir}/RUN/04_NUC_SCORES/", mode: 'copy'
+  publishDir "${params.outDir}/RUN/03_NUC_SCORES/", mode: 'copy'
 
   input:
   file(bw)
@@ -62,7 +62,7 @@ process score_peaks{
 process pca{
   label 'mid'
   // resources: see process withName:'pca|correlation' in nextflow.config
-  publishDir "${params.outDir}/RUN/05_NUC_Explorative/", mode: 'copy'
+  publishDir "${params.outDir}/RUN/04_NUC_Explorative/", mode: 'copy'
 
   input:
   file(scores)
@@ -81,7 +81,7 @@ process pca{
 process correlation{
   label 'mid'
   // resources: see process withName:'pca|correlation' in nextflow.config
-  publishDir "${params.outDir}/RUN/05_NUC_Explorative/", mode: 'copy'
+  publishDir "${params.outDir}/RUN/04_NUC_Explorative/", mode: 'copy'
 
   input:
   file(scores)

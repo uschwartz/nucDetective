@@ -36,7 +36,7 @@ def helpMessage() {
 
     General optional arguments:
       --outDir             [string]  Output directory, which will be created (default: \$HOME/nucDetective_test/)
-      --TSS                [string]  Transcript annotation in GTF format to obtain TSS profiles (default: ${params.TSS})
+      --TSS                [string]  Transcript annotation in GTF format to obtain TSS profiles (Inspector: also TES profiles and the distribution of dynamic nucleosome features along genes) (default: ${params.TSS})
       --container_engine   [string]  Container engine: 'docker' or 'singularity' (default: ${params.container_engine})
       --scratch_dir        [string]  Host directory bound as the container's /tmp; use for large genomes if /tmp fills up (default: ${params.scratch_dir})
       --test               [boolean] Run the selected workflow on the bundled toy data (default: ${params.test})

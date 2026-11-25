@@ -1,16 +1,20 @@
 process make_TSS_plots{
   container 'uschwartz/r_nucmacc:v3.1'
+  tag "$ref_point"
 
-  publishDir "${params.outDir}/RUN/02_TSS_profile", mode: 'copy'
+  // Inspector: RUN/07_METAGENE_PLOTS/<TSS|TES>/, Profiler: RUN/02_TSS_profile/
+  publishDir path: { params.analysis == 'inspector'
+                       ? "${params.outDir}/RUN/07_METAGENE_PLOTS/${ref_point}"
+                       : "${params.outDir}/RUN/02_${ref_point}_profile" }, mode: 'copy'
 
   input:
-  file(input)
+  tuple val(ref_point), file(input)
 
   output:
   file("*.pdf")
 
   script:
   """
-  make_TSS_plots_monoNucs.R $input
+  make_TSS_plots_monoNucs.R $input $ref_point
   """
 }

@@ -1,7 +1,7 @@
 process occupancy{
   container 'uschwartz/r_core:v1.0'
   // resources: see process withName:'occupancy' in nextflow.config
-  publishDir "${params.outDir}/RUN/06_DYNAMIC_NUCS/occupancy/", mode: 'copy'
+  publishDir "${params.outDir}/RUN/05_DYNAMIC_NUCS/occupancy/", mode: 'copy'
 
   input:
   file(scores)
@@ -18,7 +18,7 @@ process occupancy{
 process shift{
   container 'uschwartz/r_core:v1.0'
   // resources: see process withName:'shift' in nextflow.config
-  publishDir "${params.outDir}/RUN/06_DYNAMIC_NUCS/shift/", mode: 'copy'
+  publishDir "${params.outDir}/RUN/05_DYNAMIC_NUCS/shift/", mode: 'copy'
 
   input:
   file(nucPos)
